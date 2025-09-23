@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use sqlx::SqlitePool;
 
 use crate::converters::comparison::compare_paths;
@@ -17,7 +15,6 @@ pub struct SimilarityMissingAnalysis {
     pub log_error: String,
 }
 
-// Main reusable function that contains the core logic
 pub async fn get_image_path_comparison_analysis(pool: &SqlitePool) -> actix_web::Result<SimilarityMissingAnalysis> {
     let image_paths_on_disk = get_images_in_photo_sync_path()?;
     let image_paths_in_sql = get_image_paths_from_db(pool).await?;
@@ -33,7 +30,6 @@ pub async fn get_image_path_comparison_analysis(pool: &SqlitePool) -> actix_web:
         compare_paths(&image_paths_on_disk, &image_paths_in_sql);
     
     Ok(
-        //Pin::new(Box::new(
         SimilarityMissingAnalysis {
         total_differences,
         files_missing_from_sql,
@@ -41,7 +37,6 @@ pub async fn get_image_path_comparison_analysis(pool: &SqlitePool) -> actix_web:
         message: format!("There are {} similarity file differences", total_differences),
         log, log_error
     })
-//))
 }
 
 pub async fn get_similarity_missing_in_sql_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {

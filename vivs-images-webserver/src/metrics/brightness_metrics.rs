@@ -1,20 +1,11 @@
 use std::pin::Pin;
 
-use sqlx::{Row, SqlitePool};
+use sqlx::SqlitePool;
 
 use crate::converters::comparison::compare_paths;
 use crate::filesystem::query::images::get_images_in_photo_sync_path;
-use crate::database::common::execute_query;
+use crate::database::query::query_image_brightness::get_image_paths_from_db;
 
-// Retrieves image paths from database
-pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Vec<String>> {
-    let sql = r#"SELECT image_path FROM image_brightness"#;
-    let rows = execute_query(pool, sql, vec![]).await?;
-    
-    Ok(rows.iter()
-        .filter_map(|r| r.try_get("image_path").ok())
-        .collect())
-}
 
 #[derive(Clone)]
 pub struct BrightnessMissingAnalysis {
@@ -59,5 +50,5 @@ pub async fn get_brightness_missing_in_sql_count(pool: &SqlitePool) -> actix_web
 pub async fn get_brightness_missing_on_disk_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
     let analysis = get_image_path_comparison_analysis(pool).await?;
     let v = analysis.files_missing_from_disk.len();
-    Ok((v, format!("There are {} images in SQL without a valid image on disk", v)))
+    Ok((v, format!("There are {} images in brightness table without a valid image on disk", v)))
 }

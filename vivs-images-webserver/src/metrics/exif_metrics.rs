@@ -1,20 +1,10 @@
 use std::pin::Pin;
 
-use sqlx::{Row, SqlitePool};
+use sqlx::SqlitePool;
 
 use crate::converters::comparison::compare_paths;
 use crate::filesystem::query::images::get_images_in_photo_sync_path;
-use crate::database::common::execute_query;
-
-// Retrieves image paths from database
-pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Vec<String>> {
-    let sql = r#"SELECT image_path FROM image_exif"#;
-    let rows = execute_query(pool, sql, vec![]).await?;
-    
-    Ok(rows.iter()
-        .filter_map(|r| r.try_get("image_path").ok())
-        .collect())
-}
+use crate::database::query::query_image_exif::get_image_paths_from_db;
 
 #[derive(Clone)]
 pub struct ExifMissingAnalysis {
@@ -26,7 +16,6 @@ pub struct ExifMissingAnalysis {
     pub log_error: String,
 }
 
-// Main reusable function that contains the core logic
 pub async fn get_image_path_comparison_analysis(pool: &SqlitePool) -> actix_web::Result<Pin<Box<ExifMissingAnalysis>>> {
     let image_paths_on_disk = get_images_in_photo_sync_path()?;
     let image_paths_in_sql = get_image_paths_from_db(pool).await?;
