@@ -25,6 +25,7 @@ pub enum WorkerToMainMessage {
 pub enum MainToWorkerMessage {
     StartAction {
         action_name: String,
+        dry_run: bool,
         task_id: u32,
     },
     Shutdown,

@@ -1,6 +1,8 @@
+use actix_web::http::header::LOCATION;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use sqlx::SqlitePool;
 
+use crate::models::query_params::default_search_params::get_image_wallpaper_based_on_brightness_search_params;
 use crate::view::html::model_views::image::generate_image_table_rows;
 use crate::view::html::layout::layout_view;
 use crate::view::html::common::create_html_table;
@@ -44,4 +46,14 @@ pub async fn search_images(
 
     let html = layout_view(Some(&title), &content_html);
     Ok(HttpResponse::Ok().content_type("text/html").body(html))
+}
+
+
+
+pub async fn search_wallpapers() -> Result<HttpResponse> {
+    let params = get_image_wallpaper_based_on_brightness_search_params();
+    let params = params.into_html_params();
+    let query_string = serde_urlencoded::to_string(&params).unwrap();
+    let href = format!("/search?{}", query_string);
+    Ok(HttpResponse::SeeOther().insert_header((LOCATION, href)).finish())
 }

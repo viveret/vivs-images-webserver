@@ -1,8 +1,7 @@
-use std::{error::Error, pin::Pin};
-
 use exif::{In, Tag};
 
-use crate::{converters::extract_image_taken_at::extract_image_taken_at, models::image_exif::ImageExif};
+use crate::models::image_exif::ImageExif;
+use crate::converters::extract_image_taken_at::extract_image_taken_at;
 
 
 pub enum ImageToExifAlgo {
@@ -17,7 +16,7 @@ impl ImageToExifOptions {}
 
 // Optional: Function to calculate exif of an image (equivalent to the bash image processing)
 // This would require additional dependencies like image-rs
-pub fn extract_image_exif(image_path: &str, options: &ImageToExifOptions) -> actix_web::Result<ImageExif> {
+pub fn extract_image_exif(image_path: &str, _options: &ImageToExifOptions) -> actix_web::Result<ImageExif> {
     let file = std::fs::File::open(image_path)?;
     let mut bufreader = std::io::BufReader::new(&file);
     let exifreader = exif::Reader::new();

@@ -1,21 +1,10 @@
 use std::f64::consts::PI;
+
 use chrono::{Local, Timelike};
 
-// Generate brightness SQL conditional part of the query
-pub fn generate_brightness_conditional_query_part(lower_bound: f64, upper_bound: f64) -> String {
-    format!("brightness BETWEEN {} AND {} AND brightness IS NOT NULL", lower_bound, upper_bound)
-}
+use crate::models::query_params::search_params::SearchParams;
 
-// Generate brightness SQL query
-pub fn generate_brightness_query(lower_bound: f64, upper_bound: f64) -> String {
-    let inner_sql = generate_brightness_conditional_query_part(lower_bound, upper_bound);
-    let sql_query = format!(
-        "SELECT image_path FROM image_brightness WHERE {} ORDER BY RANDOM() LIMIT 1;",
-        inner_sql
-    );
 
-    sql_query
-}
 
 // Calculate brightness parameters based on current time
 pub fn calculate_brightness_params() -> (f64, f64) {
@@ -50,11 +39,15 @@ pub fn calculate_brightness_params() -> (f64, f64) {
 }
 
 // Main query function
-pub fn get_image_brightness_query() -> String {
+pub fn get_image_wallpaper_based_on_brightness_search_params() -> SearchParams {
     let (lower_bound, upper_bound) = calculate_brightness_params();
     
     // Get random image matching the brightness range
-    let random_image = generate_brightness_query(lower_bound, upper_bound);
-    
-    random_image
+    let mut params = SearchParams::default();
+    params.set_field_value("limit", Some("1".to_string()));
+    params.set_field_value("brightness_min", Some(lower_bound.to_string()));
+    params.set_field_value("brightness_max", Some(upper_bound.to_string()));
+    params.set_field_value("query", Some("Wallpapers/".to_string()));
+
+    params
 }

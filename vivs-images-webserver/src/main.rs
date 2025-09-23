@@ -107,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
             .route("/actions/start/{action_name}", web::post().to(view::html::pages::action_detail::view_page_action_detail_post))
             .route("/actions/task/{action_task_id}", web::get().to(view::html::pages::task_detail::view_page_task_detail_get))
             .route("/search", web::get().to(view::html::pages::search::search_images))
+            .route("/search/wallpapers", web::get().to(view::html::pages::search::search_wallpapers))
             .route("/browse", web::get().to(view::html::pages::browse_all::browse_all))
             .route("/categories", web::get().to(view::html::pages::categories::view_page_categories))
             .route("/categories/{category}", web::get().to(view::html::pages::category_detail::category_detail))

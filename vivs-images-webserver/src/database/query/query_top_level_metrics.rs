@@ -9,10 +9,12 @@ pub async fn query_top_level_metrics(
 ) -> Result<Vec<sqlx::sqlite::SqliteRow>, actix_web::Error> {
 
     let mut query = String::from("");
-    let mut params: Vec<&str> = Vec::new();
+    let params: Vec<&str> = vec![];
 
     query.push_str(r#"
         SELECT COUNT(*) AS total_images FROM image_exif;
+        SELECT COUNT(*) AS total_similarity FROM image_similarity;
+        SELECT COUNT(*) AS total_brightness FROM image_brightness;
         SELECT 0 AS total_categories;
     "#);
 

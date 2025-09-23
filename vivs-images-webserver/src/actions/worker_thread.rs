@@ -175,7 +175,7 @@ impl WorkerThread {
         task_id
     }
 
-    pub fn run_action(&self, action_name: String) -> Result<u32, String> {
+    pub fn run_action(&self, action_name: String, dry_run: bool) -> Result<u32, String> {
         let action = self.action_registry
             .get_action(&action_name)
             .ok_or_else(|| format!("Action {} not found", action_name))?;
@@ -184,8 +184,12 @@ impl WorkerThread {
             return Err(format!("Action {} is not runnable", action_name));
         }
 
+        if dry_run && !action.get_can_dry_run() {
+            return Err(format!("Action {} is not runnable in dry run mode", action_name));
+        }
+
         let task_id = self.new_task_id_for_action(action);
-        self.tx_to_worker.send(MainToWorkerMessage::StartAction { action_name, task_id })
+        self.tx_to_worker.send(MainToWorkerMessage::StartAction { action_name, dry_run, task_id })
             .map_err(|e| {
                 format!("could not send start action message: {}", e)
             })?;
@@ -195,6 +199,7 @@ impl WorkerThread {
 
     fn execute_task(
         task_id: u32,
+        dry_run: bool,
         action: Arc<dyn IWebServerAction>,
         pool: Pool<Sqlite>,
         tx_to_worker: &TaskToWorkerSender,
@@ -213,7 +218,7 @@ impl WorkerThread {
         // Spawn the root task
         let tx_to_worker2 = tx_to_worker.clone();
         let result = rt.block_on(async {
-            action.run_task(pool, tx_to_worker2, task_id).await
+            action.run_task(pool, tx_to_worker2, dry_run, task_id).await
         });
 
         // Handle completion
@@ -238,8 +243,8 @@ impl WorkerThread {
                 select! {
                     recv(rx_from_main) -> msg => {
                         match msg {
-                            Ok(MainToWorkerMessage::StartAction { action_name, task_id }) => {
-                                self.handle_start_action(action_name, task_id);
+                            Ok(MainToWorkerMessage::StartAction { action_name, dry_run, task_id }) => {
+                                self.handle_start_action(action_name, dry_run, task_id);
                             }
                             Ok(MainToWorkerMessage::Shutdown) => {
                                 println!("Worker shutdown");
@@ -259,13 +264,13 @@ impl WorkerThread {
         });
     }
 
-    fn handle_start_action(&self, action_name: String, task_id: u32) {
+    fn handle_start_action(&self, action_name: String, dry_run: bool, task_id: u32) {
         if let Some(action) = self.action_registry.get_action(&action_name) {
             let task_manager = self.task_manager.clone();
             let pool = self.pool.clone();
             let (tx_to_worker, rx_from_task) = crossbeam_channel::unbounded();
             self.thread_pool.execute(move || {
-                if let Err(e) = WorkerThread::execute_task(task_id, action, pool, &tx_to_worker, &task_manager) {
+                if let Err(e) = WorkerThread::execute_task(task_id, dry_run, action, pool, &tx_to_worker, &task_manager) {
                     task_manager.append_task_output(task_id, &format!("run action error: {}", e));
                 }
             });

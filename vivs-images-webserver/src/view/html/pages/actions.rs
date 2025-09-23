@@ -39,10 +39,10 @@ fn gen_tasks_table_html(worker: &WorkerThread) -> String {
         let task_id = r.action_task_id;
         format!(r#"<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"#,
             task_link_html(task_id, r.action_name.clone()),
-            task_link_html(task_id, format!("{:?}", r.time_started)),
-            task_link_html(task_id, format!("{:?}", r.time_ended)),
+            task_link_html(task_id, format!("{}", r.time_started.with_timezone(&chrono::Local).format("%B %d, %Y, at %T"))),
+            task_link_html(task_id, format!("{}", r.time_ended.map(|dt| dt.with_timezone(&chrono::Local).format("%B %d, %Y, at %T").to_string()).unwrap_or_default())),
             task_link_html(task_id, format!("{:?}", r.completion_status)),
-            task_link_html(task_id, format!("{:?}", r.progress))
+            task_link_html(task_id, format!("{:.5?}%", r.progress * 100.0))
         )
     }).collect();
 

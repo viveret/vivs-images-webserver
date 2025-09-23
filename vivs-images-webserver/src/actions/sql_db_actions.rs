@@ -82,7 +82,9 @@ impl IWebServerAction for SqlDbAction {
         self.is_runnable
     }
     
-    async fn run_task(&self, _pool: Pool<Sqlite>, send: TaskToWorkerSender, task_id: u32) -> actix_web::Result<()> {
+    fn get_can_dry_run(&self) -> bool { false }
+    
+    async fn run_task(&self, _pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
         send.send(super::channels::TaskToWorkerMessage::LogInfo(task_id, format!("Task has been run!")))
             .map_err(|e| actix_web::error::ErrorInternalServerError(format!("{}", e)))?;
         Ok(())

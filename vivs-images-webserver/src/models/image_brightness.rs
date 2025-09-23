@@ -1,8 +1,10 @@
+use serde::Deserialize;
 use sqlx::Row;
 
 use crate::models::image::ImageFieldMeta;
 
-
+// Struct to hold mapping of an image path to calculated brightness
+#[derive(Debug, Clone, Deserialize)]
 pub struct ImageBrightness {
     pub image_path: String,
     pub brightness: f32,
@@ -26,6 +28,7 @@ impl ImageBrightness {
 
     pub fn get_field(&self, field: &str) -> Option<String> {
         match field {
+            "image_path" => Some(self.image_path.clone()),
             "brightness" => Some(format!("{:.2}", self.brightness)),
             _ => None,
         }

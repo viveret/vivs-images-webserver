@@ -49,3 +49,8 @@ pub fn get_photo_sync_path() -> actix_web::Result<String> {
         .map(|s| s.to_string())
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Path contains invalid UTF-8"))
 }
+
+pub fn get_images_in_photo_sync_path() -> actix_web::Result<Vec<String>> {
+    let images_path = get_photo_sync_path()?;
+    Ok(get_images_in_folder(images_path))
+}

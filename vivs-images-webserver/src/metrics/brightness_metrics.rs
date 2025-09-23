@@ -3,7 +3,7 @@ use std::pin::Pin;
 use sqlx::{Row, SqlitePool};
 
 use crate::converters::comparison::compare_paths;
-use crate::filesystem::query::images::{get_images_in_folder, get_photo_sync_path};
+use crate::filesystem::query::images::get_images_in_photo_sync_path;
 use crate::database::common::execute_query;
 
 // Retrieves image paths from database
@@ -28,8 +28,7 @@ pub struct BrightnessMissingAnalysis {
 
 // Main reusable function that contains the core logic
 pub async fn get_image_path_comparison_analysis(pool: &SqlitePool) -> actix_web::Result<Pin<Box<BrightnessMissingAnalysis>>> {
-    let images_path = get_photo_sync_path()?;
-    let image_paths_on_disk = get_images_in_folder(images_path);
+    let image_paths_on_disk = get_images_in_photo_sync_path()?;
     let image_paths_in_sql = get_image_paths_from_db(pool).await?;
     let mut log = String::new();
     let mut log_error = String::new();

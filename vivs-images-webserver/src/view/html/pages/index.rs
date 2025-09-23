@@ -9,8 +9,8 @@ use sqlx::SqlitePool;
 
 use crate::actions::common::get_all_action_indicators;
 use crate::database::query::query_top_level_metrics::get_top_level_metrics;
+use crate::filesystem::query::images::get_images_in_photo_sync_path;
 use crate::models::query_params::search_params::SearchParams;
-use crate::view::html::common::link_html;
 use crate::view::html::layout::layout_view;
 use crate::view::html::model_views::search_params_simple::search_images_simple_form;
 use crate::view::html::pages::actions::action_href;
@@ -30,7 +30,7 @@ pub async fn get_indicators_html(pool: &SqlitePool) -> Result<String> {
             let action_link_html = action_href(i.get_action_name(), link_content);
             Some((v.0, format!(r#"<li>{}</li>"#, action_link_html)))
         })
-    }).collect::<Vec<(bool, String)>>();// .join("");
+    }).collect::<Vec<(bool, String)>>();
 
     let activated_html = indicators.iter().filter(|x| x.0).map(|x| x.1.clone()).collect::<Vec<String>>().join("");
     let deactivated_html = indicators.iter().filter(|x| !x.0).map(|x| x.1.clone()).collect::<Vec<String>>().join("");
@@ -49,21 +49,33 @@ pub async fn index(
         </div>
     "#);
 
+    let total_images_on_disk = get_images_in_photo_sync_path()?.len();
+    let total_images_on_disk_factorial = total_images_on_disk * (total_images_on_disk - 1) / 2;
     let metrics = get_top_level_metrics(&pool).await?;
     let datetime: DateTime<Utc> = metrics.last_updated.into();
     let local_time = datetime.with_timezone(&chrono::Local);
+    let exif_percent = metrics.total_images as f32 / total_images_on_disk as f32 * 100.0;
+    let brightness_percent = metrics.total_brightness as f32 / total_images_on_disk as f32 * 100.0;
+    let similarity_percent = metrics.total_similarity as f32 / total_images_on_disk_factorial as f32 * 100.0;
     
     // push some basic info about the app and the dataset
     let dataset_info = format!(r#"
         <div class="dataset-info">
             <h4>Dataset Information</h4>
             <ul>
-                <li>Total Images: {}</li>
+                <li>Total Images on disk: {}</li>
+                <li>Total Images in database: {} ({:.2}% of expected {})</li>
+                <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
+                <li>Total Image Similarity values: {} ({:.2}% of expected {})</li>
                 <li>Categories: {}</li>
                 <li>Last Updated: {}</li>
             </ul>
         </div>
-    "#, metrics.total_images, metrics.categories, local_time.format("%B %d, %Y, at %T")); // show pretty date
+    "#, total_images_on_disk, 
+    metrics.total_images, exif_percent, total_images_on_disk,
+    metrics.total_brightness, brightness_percent, total_images_on_disk,
+    metrics.total_similarity, similarity_percent, total_images_on_disk_factorial,
+    metrics.categories, local_time.format("%B %d, %Y, at %T")); // show pretty date
     content.push_str(&dataset_info);
 
     let indicators_to_list_html = get_indicators_html(&pool).await?;

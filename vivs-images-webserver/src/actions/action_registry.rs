@@ -8,6 +8,9 @@ use crate::actions::refresh::update_image_brightness::DeleteImageBrightnessFromS
 use crate::actions::channels::TaskToWorkerSender;
 use crate::actions::refresh::update_image_exif::DeleteImageExifFromSqlNotOnDiskAction;
 use crate::actions::refresh::update_image_exif::InsertNewImageExifFromDiskAction;
+use crate::actions::refresh::update_image_similarity::DeleteImageSimilarityFromSqlNotOnDiskAction;
+use crate::actions::refresh::update_image_similarity::InsertNewImageSimilarityFromDiskAction;
+use crate::actions::refresh::update_image_similarity::InsertNewImageSimilarityFromSqlDbAction;
 
 #[async_trait]
 pub trait IWebServerAction: Send + Sync {
@@ -15,7 +18,8 @@ pub trait IWebServerAction: Send + Sync {
     fn get_label(&self) -> String;
     fn get_description(&self) -> String;
     fn get_is_runnable(&self) -> bool;
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, task_id: u32) -> actix_web::Result<()>;
+    fn get_can_dry_run(&self) -> bool;
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()>;
 }
 
 #[derive(Clone)]
@@ -62,6 +66,9 @@ pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
         Arc::new(DeleteImageBrightnessFromSqlNotOnDiskAction::new()),
         Arc::new(InsertNewImageExifFromDiskAction::new()),
         Arc::new(DeleteImageExifFromSqlNotOnDiskAction::new()),
+        Arc::new(InsertNewImageSimilarityFromDiskAction::new()),
+        Arc::new(InsertNewImageSimilarityFromSqlDbAction::new()),
+        Arc::new(DeleteImageSimilarityFromSqlNotOnDiskAction::new()),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());
     actions

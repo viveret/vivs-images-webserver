@@ -35,7 +35,9 @@ impl IWebServerAction for InsertNewImageBrightnessFromDiskAction {
         true
     }
     
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, task_id: u32) -> actix_web::Result<()> {
+    fn get_can_dry_run(&self) -> bool { false }
+
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
         // first 1/3 of progress is getting the difference list
         let analysis = get_image_path_comparison_analysis(&pool).await?;
         let analysis: BrightnessMissingAnalysis = (*analysis).clone();
@@ -103,7 +105,9 @@ impl IWebServerAction for DeleteImageBrightnessFromSqlNotOnDiskAction {
         true
     }
     
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, task_id: u32) -> actix_web::Result<()> {
+    fn get_can_dry_run(&self) -> bool { false }
+    
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
         // first 1/3 of progress is getting the difference list
         let analysis = get_image_path_comparison_analysis(&pool).await?;
         let analysis: BrightnessMissingAnalysis = (*analysis).clone();

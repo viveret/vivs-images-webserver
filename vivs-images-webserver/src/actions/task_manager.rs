@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use chrono::{DateTime, Utc};
+
 use super::channels::TaskCompletionStatus;
 use super::action_registry::IWebServerAction;
 
@@ -10,8 +12,8 @@ use super::action_registry::IWebServerAction;
 pub struct WebServerActionTask {
     pub action_task_id: u32,
     pub action_name: String,
-    pub time_started: Instant,
-    pub time_ended: Option<Instant>,
+    pub time_started: DateTime<Utc>,
+    pub time_ended: Option<DateTime<Utc>>,
     pub completion_status: TaskCompletionStatus,
     pub progress: f32,
     pub handle: Arc<Mutex<Option<std::thread::JoinHandle<()>>>>,
@@ -29,7 +31,7 @@ impl WebServerActionTask {
         Self {
             action_task_id,
             action_name,
-            time_started: Instant::now(),
+            time_started: Utc::now().into(),
             time_ended: None,
             completion_status: TaskCompletionStatus::NotCompleted,
             progress: 0.0,
@@ -41,7 +43,7 @@ impl WebServerActionTask {
     }
 
     pub fn mark_completed(&mut self, status: TaskCompletionStatus) {
-        self.time_ended = Some(Instant::now());
+        self.time_ended = Some(Utc::now().into());
         self.completion_status = status;
         self.progress = 1.0;
     }

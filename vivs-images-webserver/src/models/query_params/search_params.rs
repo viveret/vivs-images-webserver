@@ -230,6 +230,15 @@ impl SearchParams {
         parts.join(", ")
     }
 
+    pub fn set_field_value(&mut self, name: &str, value: Option<String>) {
+        let field_input = SearchParamFieldInput { name: name.to_string(), value };
+        let field_index = self.fields.iter().position(|x| x.field_meta.name == name);
+        if let Some(field_index) = field_index {
+            let x = self.fields.remove(field_index);
+            self.fields.push(SearchParamFieldOutput { field_meta: x.field_meta, field_input });
+        }
+    }
+
     fn get_field_value(&self, name: &str) -> Option<String> {
         for field in &self.fields {
             if let Some(v_in) = field.field_input.value.as_ref() {
