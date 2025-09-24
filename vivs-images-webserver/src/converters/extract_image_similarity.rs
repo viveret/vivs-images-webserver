@@ -8,6 +8,7 @@ use image::imageops::FilterType;
 use image::GenericImageView;
 use tempfile::NamedTempFile;
 
+use crate::converters::convert_images_same_size_max::resize_to_common_dimensions;
 use crate::converters::string_to_hashcode::string_hashcode_java_style;
 use crate::models::image_similarity::ImageComparisonAlgorithm;
 use crate::models::image_similarity::ImageSimilarity;
@@ -140,58 +141,4 @@ fn extract_image_similarity_using_magick(options: &ComputeImageSimilarityOptions
     } else {
         return Err(Error::new(ErrorKind::Other, format!("ImageMagick error: {}", error_msg)));
     }
-}
-
-
-
-/// Resizes two images to common dimensions for comparison
-fn resize_to_common_dimensions(
-    img_a: &image::DynamicImage,
-    img_b: &image::DynamicImage,
-    max_dimension: Option<u32>,
-    filter_type: FilterType,
-) -> (image::DynamicImage, image::DynamicImage) {
-    let (width_a, height_a) = img_a.dimensions();
-    let (width_b, height_b) = img_b.dimensions();
-
-    // If images are already the same size and no downscaling needed, return as is
-    if width_a == width_b && height_a == height_b && max_dimension.is_none() {
-        return (img_a.clone(), img_b.clone());
-    }
-
-    // Calculate target dimensions
-    let (target_width, target_height) = if let Some(max_dim) = max_dimension {
-        // Calculate scale factor to fit within max dimension while maintaining aspect ratio
-        let scale_a = calculate_scale_factor(width_a, height_a, max_dim);
-        let scale_b = calculate_scale_factor(width_b, height_b, max_dim);
-        
-        // Use the smaller scale to ensure both images fit
-        let scale = scale_a.min(scale_b);
-        
-        (
-            (width_a as f32 * scale) as u32,
-            (height_a as f32 * scale) as u32
-        )
-    } else {
-        // Use the smaller dimensions to ensure both images can be compared
-        (
-            width_a.min(width_b),
-            height_a.min(height_b)
-        )
-    };
-
-    // Resize both images to target dimensions
-    let resized_a = img_a.resize(target_width, target_height, filter_type);
-    let resized_b = img_b.resize(target_width, target_height, filter_type);
-
-    (resized_a, resized_b)
-}
-
-/// Calculate scale factor to fit within max dimension while maintaining aspect ratio
-fn calculate_scale_factor(width: u32, height: u32, max_dimension: u32) -> f32 {
-    let max_dim = max_dimension as f32;
-    let scale_width = max_dim / width as f32;
-    let scale_height = max_dim / height as f32;
-    
-    scale_width.min(scale_height).min(1.0) // Don't upscale, only downscale
 }

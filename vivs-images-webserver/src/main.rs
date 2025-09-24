@@ -10,6 +10,7 @@ use crate::actions::worker_thread::WorkerThread;
 
 
 pub mod actions;
+pub mod calc;
 pub mod converters;
 pub mod database;
 pub mod filesystem;
