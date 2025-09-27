@@ -6,14 +6,16 @@ use crate::models::query_params::similar_images_params::SimilarImagesParams;
 use crate::database::common::execute_query;
 use crate::view::html::common::{create_html_table, image_html};
 use crate::view::html::layout::layout_view;
-use crate::view::html::model_views::image::{generate_image_table_rows, generate_image_thumbnail_table_open_img};
+use crate::view::html::model_views::image::generate_image_thumbnail_table_query_thumbnails_db;
+use crate::view::html::model_views::image::generate_image_table_rows;
 
 
 pub async fn view_image(
     pool: web::Data<SqlitePool>,
     params: web::Query<SimilarImagesParams>,
 ) -> Result<HttpResponse> {
-    let thumbnails_html = generate_image_thumbnail_table_open_img(&params.image_path);
+    // let thumbnails_html = generate_image_thumbnail_table_open_img(&params.image_path);
+    let thumbnails_html = generate_image_thumbnail_table_query_thumbnails_db(&params.image_path, &pool).await;
     
     let threshold = params.threshold.unwrap_or(0.8);
 

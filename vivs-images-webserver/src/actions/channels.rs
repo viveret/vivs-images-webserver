@@ -1,3 +1,5 @@
+use std::io::ErrorKind;
+
 use crossbeam_channel::{Sender, Receiver};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,4 +64,23 @@ pub fn worker_to_main_send_helper(send: &WorkerToMainSender, msg: WorkerToMainMe
 pub fn main_to_worker_send_helper(send: &MainToWorkerSender, msg: MainToWorkerMessage) -> actix_web::Result<()> {
     send.send(msg)
         .map_err(|e| actix_web::error::ErrorInternalServerError(format!("{}", e)))
+}
+
+            
+
+
+
+pub fn task_to_worker_send_helper2(send: &TaskToWorkerSender, msg: TaskToWorkerMessage) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+    send.send(msg)
+        .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
+}
+
+pub fn worker_to_main_send_helper2(send: &WorkerToMainSender, msg: WorkerToMainMessage) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+    send.send(msg)
+        .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
+}
+
+pub fn main_to_worker_send_helper2(send: &MainToWorkerSender, msg: MainToWorkerMessage) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+    send.send(msg)
+        .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
 }

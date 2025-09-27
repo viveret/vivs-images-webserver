@@ -8,6 +8,7 @@ use chrono::Utc;
 use sqlx::SqlitePool;
 
 use crate::actions::common::get_all_action_indicators;
+use crate::converters::extract_image_thumbnail::DEFAULT_THUMBNAIL_SIZE_LIST;
 use crate::database::query::query_top_level_metrics::get_top_level_metrics;
 use crate::filesystem::query::images::get_images_in_photo_sync_path;
 use crate::models::query_params::search_params::SearchParams;
@@ -57,6 +58,8 @@ pub async fn index(
     let exif_percent = metrics.total_images as f32 / total_images_on_disk as f32 * 100.0;
     let brightness_percent = metrics.total_brightness as f32 / total_images_on_disk as f32 * 100.0;
     let similarity_percent = metrics.total_similarity as f32 / total_images_on_disk_factorial as f32 * 100.0;
+    let thumbnail_expected_count = metrics.total_images * (DEFAULT_THUMBNAIL_SIZE_LIST.len() as u32);
+    let thumbnail_percent = metrics.total_thumbnails as f32 / thumbnail_expected_count as f32 * 100.0;
     
     // push some basic info about the app and the dataset
     let dataset_info = format!(r#"
@@ -66,7 +69,8 @@ pub async fn index(
                 <li>Total Images on disk: {}</li>
                 <li>Total Images in database: {} ({:.2}% of expected {})</li>
                 <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
-                <li>Total Image Similarity values: {} ({:.2}% of expected {})</li>
+                <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
+                <li>Total Image Thumbnails: {} ({:.2}% of expected {})</li>
                 <li>Categories: {}</li>
                 <li>Last Updated: {}</li>
             </ul>
@@ -75,6 +79,7 @@ pub async fn index(
     metrics.total_images, exif_percent, total_images_on_disk,
     metrics.total_brightness, brightness_percent, total_images_on_disk,
     metrics.total_similarity, similarity_percent, total_images_on_disk_factorial,
+    metrics.total_thumbnails, thumbnail_percent, thumbnail_expected_count,
     metrics.categories, local_time.format("%B %d, %Y, at %T")); // show pretty date
     content.push_str(&dataset_info);
 

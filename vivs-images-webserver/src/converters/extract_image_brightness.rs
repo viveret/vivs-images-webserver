@@ -18,7 +18,7 @@ impl ImageToBrightnessOptions {}
 
 // Optional: Function to calculate brightness of an image (equivalent to the bash image processing)
 // This would require additional dependencies like image-rs
-pub fn extract_image_brightness(image_path: &str, options: &ImageToBrightnessOptions) -> Result<f64, Pin<Box<ImageError>>> {
+pub fn extract_image_brightness(image_path: &str, _options: &ImageToBrightnessOptions) -> Result<f64, Pin<Box<ImageError>>> {
     let img = image::open(Path::new(image_path)).map_err(|e| Pin::new(Box::new(e)))?;
     let gray_img = img.grayscale();
     let (width, height) = gray_img.dimensions();

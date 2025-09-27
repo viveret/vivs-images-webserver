@@ -3,6 +3,7 @@ use serde::Deserialize;
 use crate::models::image_similarity::ImageSimilarity;
 use crate::models::image_exif::ImageExif;
 use crate::models::image_brightness::ImageBrightness;
+use crate::models::image_thumbnail::ImageThumbnail;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ImageFieldMeta {
@@ -19,6 +20,7 @@ pub struct Image {
     pub exif: Option<ImageExif>,
     pub brightness: Option<ImageBrightness>,
     pub similarity: Option<ImageSimilarity>,
+    pub thumbnail: Option<ImageThumbnail>,
 }
 
 impl Image {
@@ -33,6 +35,7 @@ impl Image {
             exif: Some(exif),
             brightness: Some(brightness),
             similarity: Some(similarity),
+            thumbnail: None,
         }
     }
 
@@ -57,5 +60,9 @@ impl Image {
             return Some(v);
         }
         None
+    }
+    
+    pub fn assign_thumbnail(&mut self, thumb: ImageThumbnail) {
+        self.thumbnail.replace(thumb);
     }
 }

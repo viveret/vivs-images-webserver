@@ -1,3 +1,7 @@
+use base64::{prelude::BASE64_STANDARD, Engine};
+
+use crate::models::image_thumbnail::ImageThumbnail;
+
 
 
 // Helper function to generate image HTML with common styling
@@ -5,6 +9,13 @@ pub fn image_html(image_path: &str, max_width: Option<u32>) -> String {
     let width_style = max_width.map(|w| format!("max-width: {}px;", w)).unwrap_or_default();
     format!(r#"<img src="/img?path={}" alt="{}" onerror="this.style.display='none'" style="{}">"#,
         image_path, image_path, width_style)
+}
+
+pub fn image_thumbnail_html(thumb: &ImageThumbnail, max_width: Option<u32>) -> String {
+    let width_style = max_width.map(|w| format!("max-width: {}px;", w)).unwrap_or_default();
+    format!(r#"<img alt="{}" onerror="this.style.display='none'" style="{}" src="data:image/png;base64,{}"/>"#,
+        thumb.image_path, width_style,
+        BASE64_STANDARD.encode(&thumb.thumbnail_data))
 }
 
 pub fn link_html(href: String, inner_content: &str) -> String {

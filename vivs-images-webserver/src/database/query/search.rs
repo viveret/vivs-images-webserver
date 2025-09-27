@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use sqlx::SqlitePool;
 
+use crate::database::query::query_image_thumbnail::query_thumbnail_table_at_most_width_length;
 use crate::models::image::Image;
 use crate::database::common::execute_query;
 use crate::models::query_params::search_params::SearchParams;
@@ -71,11 +72,16 @@ pub async fn execute_search_images_query_with_criteria(
     offset: Option<i32>
 ) -> Result<Vec<Image>, actix_web::Error> {
     let results = query_sql_db_images_by_criteria(pool, criteria, order_by, limit, offset).await?;
-    Ok(
-        results.into_iter()
+    let mut results: Vec<Image> = results.into_iter()
             .map(|r| Image::new(&r))
-            .collect()
-    )
+            .collect();
+
+    for img in results.iter_mut() {
+        if let Some(thumb) = query_thumbnail_table_at_most_width_length(&img.path, 64, pool).await? {
+            img.assign_thumbnail(thumb);
+        }
+    }
+    Ok(results)
 }
 
 pub async fn search_images_by_criteria(

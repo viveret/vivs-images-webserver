@@ -103,3 +103,35 @@ pub fn extract_multiple_image_thumbnails(size_list: &[u32], img: &DynamicImage, 
 
     Ok(thumbnails)
 }
+
+pub fn open_and_extract_multiple_image_thumbnails_standard_sizes(path: &str) -> Result<Vec<DynamicImage>> {
+    let img = image::open(Path::new(path))
+        .map_err(|e| Error::new(ErrorKind::InvalidData, e))?;
+    extract_multiple_image_thumbnails_standard_sizes(&img)
+}
+
+pub const DEFAULT_THUMBNAIL_SIZE_LIST: [u32;5] = [8, 16, 32, 64, 128];
+
+pub fn extract_multiple_image_thumbnails_standard_sizes(img: &DynamicImage) -> Result<Vec<DynamicImage>> {
+    let filter = image::imageops::FilterType::Lanczos3;
+    extract_multiple_image_thumbnails(&DEFAULT_THUMBNAIL_SIZE_LIST, img, filter)
+}
+
+pub fn extract_multiple_image_thumbnails_standard_sizes_to_png_vec_u8(img: &DynamicImage) -> Result<Vec<Vec<u8>>> {
+    let thumbs= extract_multiple_image_thumbnails_standard_sizes(img)?;
+    convert_thumbnails_to_vec_vec_u8(thumbs)
+}
+
+pub fn convert_thumbnails_to_vec_vec_u8(thumbs: Vec<DynamicImage>) -> std::result::Result<Vec<Vec<u8>>, Error> {
+    let mut imgs = vec![];
+    for img in thumbs {
+        let options = ExtractImageThumbnailOptions {
+            filter: image::imageops::FilterType::Lanczos3,
+            width_and_length: img.width(),
+            output_format: ThumbnailFormat::PNG
+        };
+        let s = convert_image_to_vec_u8(&img, &options)?;
+        imgs.push(s);
+    }
+    Ok(imgs)
+}

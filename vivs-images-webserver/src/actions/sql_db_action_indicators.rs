@@ -8,6 +8,8 @@ use crate::actions::indicators::update_exif_indicator::ImagesInExifSqlDbWithMiss
 use crate::actions::indicators::update_similarity_indicator::ImagesInSimilaritySqlDbWithMissingImageOnDiskIndicator;
 use crate::actions::indicators::update_similarity_indicator::ImagesInSqlDbWithLessThanExpectedSimilarityIndicator;
 use crate::actions::indicators::update_similarity_indicator::ImagesOnDiskWithMissingSimilarityIndicator;
+use crate::actions::indicators::update_thumbnail_indicator::ImagesInThumbnailSqlDbWithMissingImageOnDiskIndicator;
+use crate::actions::indicators::update_thumbnail_indicator::ImagesOnDiskWithMissingThumbnailIndicator;
 
 
 
@@ -20,5 +22,7 @@ pub fn get_sql_db_action_indicators() -> Vec<Rc<dyn IActionIndicator>> {
         Rc::new(ImagesInSimilaritySqlDbWithMissingImageOnDiskIndicator::new()),
         Rc::new(ImagesInSqlDbWithLessThanExpectedSimilarityIndicator::new()),
         Rc::new(ImagesOnDiskWithMissingSimilarityIndicator::new()),
+        Rc::new(ImagesInThumbnailSqlDbWithMissingImageOnDiskIndicator::new()),
+        Rc::new(ImagesOnDiskWithMissingThumbnailIndicator::new()),
     ]
 }

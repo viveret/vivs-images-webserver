@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{io::ErrorKind, sync::Arc};
 use std::collections::HashMap;
 
 use async_trait::async_trait;
@@ -84,9 +84,9 @@ impl IWebServerAction for SqlDbAction {
     
     fn get_can_dry_run(&self) -> bool { false }
     
-    async fn run_task(&self, _pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
+    async fn run_task(&self, _pool: Pool<Sqlite>, send: TaskToWorkerSender, _dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         send.send(super::channels::TaskToWorkerMessage::LogInfo(task_id, format!("Task has been run!")))
-            .map_err(|e| actix_web::error::ErrorInternalServerError(format!("{}", e)))?;
+            .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         Ok(())
     }
     

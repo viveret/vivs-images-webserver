@@ -1,15 +1,21 @@
+// update_image_brightness.rs
+
+use std::io::ErrorKind;
+
 use async_trait::async_trait;
 use convert_case::{Case, Casing};
 use nameof::name_of_type;
 use sqlx::{Pool, Sqlite};
 
-use crate::actions::channels::{task_to_worker_send_helper, TaskToWorkerMessage, TaskToWorkerSender};
+use crate::actions::channels::TaskToWorkerSender;
+use crate::actions::channels::TaskToWorkerMessage;
+use crate::actions::channels::task_to_worker_send_helper2;
 use crate::actions::action_registry::IWebServerAction;
 use crate::converters::extract_image_brightness::{extract_image_brightness, ImageToBrightnessAlgo, ImageToBrightnessOptions};
 use crate::database::update::update_image_brightness::{execute_delete_image_brightness_sql, execute_insert_image_brightness_sql};
 use crate::metrics::brightness_metrics::{get_image_path_comparison_analysis, BrightnessMissingAnalysis};
 
-pub struct InsertNewImageBrightnessFromDiskAction {}
+pub struct InsertNewImageBrightnessFromDiskAction;
 
 impl InsertNewImageBrightnessFromDiskAction {
     pub fn new() -> Self {
@@ -37,14 +43,15 @@ impl IWebServerAction for InsertNewImageBrightnessFromDiskAction {
     
     fn get_can_dry_run(&self) -> bool { false }
 
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         // first 1/3 of progress is getting the difference list
-        let analysis = get_image_path_comparison_analysis(&pool).await?;
+        let analysis = get_image_path_comparison_analysis(&pool).await
+            .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         let analysis: BrightnessMissingAnalysis = (*analysis).clone();
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.log))?;
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::LogError(task_id, analysis.log_error))?;
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.message))?;
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 0.3))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.log))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogError(task_id, analysis.log_error))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.message))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 0.3))?;
 
         // last 2/3 of progress are calculating the values and updating the db
         let mut missing_index = 0;
@@ -58,31 +65,31 @@ impl IWebServerAction for InsertNewImageBrightnessFromDiskAction {
                 Ok(brightness) => {
                     match execute_insert_image_brightness_sql(&missing_from_db, brightness, &pool).await {
                         Ok(()) => {
-                            task_to_worker_send_helper(&send, TaskToWorkerMessage::LogInfo(task_id, format!("Updated brightness to {} for {}", brightness, missing_from_db)))?;
+                            task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogInfo(task_id, format!("Updated brightness to {} for {}", brightness, missing_from_db)))?;
                         },
                         Err(e) => {
-                            task_to_worker_send_helper(&send, TaskToWorkerMessage::LogError(task_id, format!("update db image brightness error: {}", e)))?;
+                            task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogError(task_id, format!("update db image brightness error: {}", e)))?;
                         }
                     }
                 },
                 Err(e) => {
-                    task_to_worker_send_helper(&send, TaskToWorkerMessage::LogError(task_id, format!("extract image brightness error: {}", e)))?;
+                    task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogError(task_id, format!("extract image brightness error: {}", e)))?;
                 },
             }
 
             missing_index = missing_index + 1;
             let missing_progress = (missing_index as f64) / (missing_count as f64);
             let new_progress = 0.3 + missing_progress * 0.7;
-            task_to_worker_send_helper(&send, TaskToWorkerMessage::ProgressUpdate(task_id, new_progress as f32))?;
+            task_to_worker_send_helper2(&send, TaskToWorkerMessage::ProgressUpdate(task_id, new_progress as f32))?;
         }
         
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 1.0))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 1.0))?;
         Ok(())
     }
 }
 
 
-pub struct DeleteImageBrightnessFromSqlNotOnDiskAction {}
+pub struct DeleteImageBrightnessFromSqlNotOnDiskAction;
 impl DeleteImageBrightnessFromSqlNotOnDiskAction {
     pub fn new() -> Self { Self {} }
 }
@@ -107,14 +114,15 @@ impl IWebServerAction for DeleteImageBrightnessFromSqlNotOnDiskAction {
     
     fn get_can_dry_run(&self) -> bool { false }
     
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         // first 1/3 of progress is getting the difference list
-        let analysis = get_image_path_comparison_analysis(&pool).await?;
+        let analysis = get_image_path_comparison_analysis(&pool).await
+            .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         let analysis: BrightnessMissingAnalysis = (*analysis).clone();
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.log))?;
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::LogError(task_id, analysis.log_error))?;
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.message))?;
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 0.3))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.log))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogError(task_id, analysis.log_error))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogInfo(task_id, analysis.message))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 0.3))?;
 
         // last 2/3 of progress are deleting rows
         let mut missing_index = 0;
@@ -122,20 +130,20 @@ impl IWebServerAction for DeleteImageBrightnessFromSqlNotOnDiskAction {
         for missing_from_disk in analysis.files_missing_from_disk {
             match execute_delete_image_brightness_sql(&missing_from_disk, &pool).await {
                 Ok(()) => {
-                    task_to_worker_send_helper(&send, TaskToWorkerMessage::LogInfo(task_id, format!("Deleted {} from db", missing_from_disk)))?;
+                    task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogInfo(task_id, format!("Deleted {} from db", missing_from_disk)))?;
                 },
                 Err(e) => {
-                    task_to_worker_send_helper(&send, TaskToWorkerMessage::LogError(task_id, format!("Delete {} from db error: {}", missing_from_disk, e)))?;
+                    task_to_worker_send_helper2(&send, TaskToWorkerMessage::LogError(task_id, format!("Delete {} from db error: {}", missing_from_disk, e)))?;
                 }
             }
 
             missing_index = missing_index + 1;
             let missing_progress = (missing_index as f64) / (missing_count as f64);
             let new_progress = 0.3 + missing_progress * 0.7;
-            task_to_worker_send_helper(&send, TaskToWorkerMessage::ProgressUpdate(task_id, new_progress as f32))?;
+            task_to_worker_send_helper2(&send, TaskToWorkerMessage::ProgressUpdate(task_id, new_progress as f32))?;
         }
         
-        task_to_worker_send_helper(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 1.0))?;
+        task_to_worker_send_helper2(&send, TaskToWorkerMessage::ProgressUpdate(task_id, 1.0))?;
         Ok(())
     }
 }

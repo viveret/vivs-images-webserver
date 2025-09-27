@@ -1,12 +1,15 @@
+// update_image_similarity.rs
+
 use async_trait::async_trait;
 use convert_case::{Case, Casing};
 use nameof::name_of_type;
 use sqlx::{Pool, Sqlite};
 use tokio::sync::Semaphore;
+use std::io::ErrorKind;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::actions::channels::{task_to_worker_send_helper, TaskToWorkerMessage, TaskToWorkerSender};
+use crate::actions::channels::{task_to_worker_send_helper, task_to_worker_send_helper2, TaskToWorkerMessage, TaskToWorkerSender};
 use crate::actions::action_registry::IWebServerAction;
 use crate::converters::extract_image_similarity::{extract_image_similarity, ComputeImageSimilarityOptions};
 use crate::database::query::query_image_similarity::{get_image_paths_from_db, get_image_similarity_value_exists_in_db};
@@ -26,7 +29,7 @@ impl SimilarityProcessor {
         task_id: u32,
         path_a: &str,
         path_b: &str,
-    ) -> actix_web::Result<()> {
+    ) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         let options = ComputeImageSimilarityOptions {
             algo: ImageComparisonAlgorithm::Magick,
             filter_type: None,
@@ -71,7 +74,7 @@ impl SimilarityProcessor {
         missing_pairs: Vec<(String, String)>,
         initial_progress: f32,
         progress_range: f32,
-    ) -> actix_web::Result<()> {
+    ) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         let total_pairs = missing_pairs.len();
         
         for (index, (path_a, path_b)) in missing_pairs.into_iter().enumerate() {
@@ -100,7 +103,7 @@ impl SimilarityProcessor {
         progress_range: f32,
         max_concurrent: usize,
         requests_per_second: f64,
-    ) -> actix_web::Result<()> {
+    ) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         let semaphore = Arc::new(Semaphore::new(max_concurrent));
         let min_interval = Duration::from_secs_f64(1.0 / requests_per_second);
         let mut interval = tokio::time::interval(min_interval);
@@ -116,13 +119,14 @@ impl SimilarityProcessor {
                 initial_progress + progress_range
             };
 
-            if path_a != path_b && !get_image_similarity_value_exists_in_db(&path_a, &path_b, &pool).await? {
+            if path_a != path_b && !get_image_similarity_value_exists_in_db(&path_a, &path_b, &pool).await
+                .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)? {
                 interval.tick().await; // Rate limiting
                 
                 let pool_clone = pool.clone();
                 let send_clone = send.clone();
                 let permit = semaphore.clone().acquire_owned().await
-                    .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+                    .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
 
                 let task = tokio::spawn(async move {
                     let _permit = permit;
@@ -172,16 +176,16 @@ impl SimilarityProcessor {
     }
 
     // Helper methods for sending messages
-    fn send_log_info(send: &TaskToWorkerSender, task_id: u32, message: String) -> actix_web::Result<()> {
-        task_to_worker_send_helper(send, TaskToWorkerMessage::LogInfo(task_id, message))
+    fn send_log_info(send: &TaskToWorkerSender, task_id: u32, message: String) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+        task_to_worker_send_helper2(send, TaskToWorkerMessage::LogInfo(task_id, message))
     }
 
-    fn send_log_error(send: &TaskToWorkerSender, task_id: u32, message: String) -> actix_web::Result<()> {
-        task_to_worker_send_helper(send, TaskToWorkerMessage::LogError(task_id, message))
+    fn send_log_error(send: &TaskToWorkerSender, task_id: u32, message: String) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+        task_to_worker_send_helper2(send, TaskToWorkerMessage::LogError(task_id, message))
     }
 
-    fn send_progress_update(send: &TaskToWorkerSender, task_id: u32, progress: f32) -> actix_web::Result<()> {
-        task_to_worker_send_helper(send, TaskToWorkerMessage::ProgressUpdate(task_id, progress))
+    fn send_progress_update(send: &TaskToWorkerSender, task_id: u32, progress: f32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+        task_to_worker_send_helper2(send, TaskToWorkerMessage::ProgressUpdate(task_id, progress))
     }
 }
 
@@ -214,8 +218,7 @@ pub trait SimilarityActionHelpers {
     }
 }
 
-// Refactored actions using the helper functions
-pub struct InsertNewImageSimilarityFromDiskAction {}
+pub struct InsertNewImageSimilarityFromDiskAction;
 
 impl InsertNewImageSimilarityFromDiskAction {
     pub fn new() -> Self {
@@ -243,8 +246,9 @@ impl IWebServerAction for InsertNewImageSimilarityFromDiskAction {
     
     fn get_can_dry_run(&self) -> bool { true }
     
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
-        let analysis = get_image_path_comparison_analysis(&pool).await?;
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+        let analysis = get_image_path_comparison_analysis(&pool).await
+            .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         SimilarityProcessor::send_log_info(&send, task_id, analysis.log.clone())?;
         SimilarityProcessor::send_log_error(&send, task_id, analysis.log_error.clone())?;
         SimilarityProcessor::send_log_info(&send, task_id, analysis.message.clone())?;
@@ -286,8 +290,9 @@ impl IWebServerAction for InsertNewImageSimilarityFromSqlDbAction {
 
     fn get_can_dry_run(&self) -> bool { true }
     
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<()> {
-        let image_list = get_image_paths_from_db(&pool).await?;
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+        let image_list = get_image_paths_from_db(&pool).await
+            .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         SimilarityProcessor::send_progress_update(&send, task_id, 0.0)?;
 
         let run_in_parallel = true;
@@ -334,8 +339,10 @@ impl IWebServerAction for DeleteImageSimilarityFromSqlNotOnDiskAction {
 
     fn get_can_dry_run(&self) -> bool { false }
     
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, _dry_run: bool, task_id: u32) -> actix_web::Result<()> {
-        let analysis = get_image_path_comparison_analysis(&pool).await?;
+    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, _dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+        let analysis = get_image_path_comparison_analysis(&pool).await
+            .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
+
         SimilarityProcessor::send_log_info(&send, task_id, analysis.log.clone())?;
         SimilarityProcessor::send_log_error(&send, task_id, analysis.log_error.clone())?;
         SimilarityProcessor::send_log_info(&send, task_id, analysis.message.clone())?;
