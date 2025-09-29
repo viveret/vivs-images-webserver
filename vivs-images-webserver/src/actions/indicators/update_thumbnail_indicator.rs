@@ -5,8 +5,6 @@ use sqlx::SqlitePool;
 use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
-use crate::actions::refresh::update_image_thumbnail::InsertNewImageThumbnailFromDiskAction;
-use crate::actions::refresh::update_image_thumbnail::DeleteImageThumbnailFromSqlNotOnDiskAction;
 use crate::metrics::thumbnail_metrics::{get_thumbnail_missing_in_sql_count, get_thumbnail_missing_on_disk_count};
 
 
@@ -33,7 +31,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingThumbnailIndicator {
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(InsertNewImageThumbnailFromDiskAction).to_case(Case::Snake)
+        "add_thumbnail".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {
@@ -70,7 +68,7 @@ impl IActionIndicator for ImagesInThumbnailSqlDbWithMissingImageOnDiskIndicator 
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(DeleteImageThumbnailFromSqlNotOnDiskAction).to_case(Case::Snake)
+        "delete_missing_thumbnail".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {

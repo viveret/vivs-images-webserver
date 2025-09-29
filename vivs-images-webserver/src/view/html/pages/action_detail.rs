@@ -8,16 +8,25 @@ use actix_web::HttpResponse;
 use serde::Deserialize;
 
 use crate::actions::action_registry::find_action;
+use crate::actions::refresh::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::worker_thread::WorkerThread;
 use crate::view::html::layout::layout_view;
 
 
 pub fn submit_action_form(name:& String, label: &String, dry_run: bool) -> String {
     format!(
-        r#"<form method="POST" action="/actions/start/{}">
-                <button type="submit">{}</button>
-                <input type="text" name="dry_run" value="{}" />
-            </form>"#, name, label, dry_run)
+        r#"
+<form method="POST" action="/actions/start/{}">
+    <button type="submit">{}</button>
+    <input type="text" name="dry_run" value="{}" />
+    <select name="orch_style">
+        <option value="linear">linear</option>
+        <option value="normal">normal</option>
+        <option value="faster">faster</option>
+        <option value="extreme">extreme</option>
+    </select>
+</form>
+        "#, name, label, dry_run)
 }
 
 pub async fn view_page_action_detail_get(
@@ -43,6 +52,7 @@ pub async fn view_page_action_detail_get(
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ActionTaskPostOptions {
+    pub orch_style: Option<String>,
     pub dry_run: Option<String>,
 }
 
@@ -52,7 +62,15 @@ pub async fn view_page_action_detail_post(
     action_name: web::Path<String>,
     web::Form(form): web::Form<ActionTaskPostOptions>,
 ) -> Result<HttpResponse> {
-    match worker_thread_pool.get_ref().run_action(action_name.to_string(), form.dry_run.unwrap_or_default() == "true") {
+    let orch_options = match form.orch_style.unwrap_or_default().as_str() {
+        "linear" => TaskOrchestrationOptions::new_linear(),
+        "normal" => TaskOrchestrationOptions::new_defaults(),
+        "faster" => TaskOrchestrationOptions::new_faster(),
+        "extreme" => TaskOrchestrationOptions::new_extreme(),
+        _ => TaskOrchestrationOptions::new_defaults(),
+    };
+    let dry_run = form.dry_run.unwrap_or_default() == "true";
+    match worker_thread_pool.get_ref().run_action(action_name.to_string(), dry_run, orch_options) {
         Ok(task_id) => {
             let href = format!("/actions/task/{}", task_id);
             Ok(HttpResponse::SeeOther().insert_header((LOCATION, href)).finish())

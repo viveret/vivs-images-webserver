@@ -38,3 +38,9 @@ impl ImageBrightness {
         serde_json::from_str::<Vec<ImageFieldMeta>>(IMAGE_BRIGHTNESS_COLUMNS_JSON).unwrap()
     }
 }
+
+impl std::fmt::Display for ImageBrightness {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "brightness: {}", self.brightness)
+    }
+}

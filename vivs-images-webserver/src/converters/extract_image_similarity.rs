@@ -5,11 +5,15 @@ use std::io::Error;
 use std::process::Command;
 
 use image::imageops::FilterType;
+use image::DynamicImage;
 use image::GenericImageView;
+use sqlx::Pool;
+use sqlx::Sqlite;
 use tempfile::NamedTempFile;
 
 use crate::converters::convert_images_same_size_max::resize_to_common_dimensions;
 use crate::converters::string_to_hashcode::string_hashcode_java_style;
+use crate::database::query::query_image_thumbnail::query_thumbnail_table_at_most_width_length;
 use crate::models::image_similarity::ImageComparisonAlgorithm;
 use crate::models::image_similarity::ImageSimilarity;
 
@@ -24,12 +28,28 @@ pub struct ComputeImageSimilarityOptions {
     pub image_path_b: String,
 }
 
-impl ComputeImageSimilarityOptions {}
+impl ComputeImageSimilarityOptions {
+    pub fn new_defaults(image_path_a: String, image_path_b: String) -> Self {
+        Self {
+            algo: ImageComparisonAlgorithm::Magick,
+            filter_type: None,
+            max_dimension: None,
+            image_path_a, image_path_b
+        }
+    }
+}
 
-pub fn extract_image_similarity(options: &ComputeImageSimilarityOptions) -> Result<ImageSimilarity> {
+impl std::fmt::Display for ComputeImageSimilarityOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} x {}", self.image_path_a, self.image_path_b)
+    }
+}
+
+pub async fn extract_image_similarity(options: &ComputeImageSimilarityOptions, pool: &Pool<Sqlite>) -> Result<ImageSimilarity> {
     let (similarity_value, similarity_confidence) = match options.algo {
         ImageComparisonAlgorithm::Magick => extract_image_similarity_using_magick(options)?,
         ImageComparisonAlgorithm::CustomV1 => extract_image_similarity_using_custom_v1(options)?,
+        ImageComparisonAlgorithm::CustomV2Thumbnails => extract_image_similarity_using_custom_v2_thumbnails(options, pool).await?,
     };
     let image_comparison_key = compute_comparison_key(&options.image_path_a, &options.image_path_b);
     let image_comparison_algorithm = options.algo.clone();
@@ -39,6 +59,33 @@ pub fn extract_image_similarity(options: &ComputeImageSimilarityOptions) -> Resu
         image_path_b: options.image_path_b.clone(),
         similarity_value, similarity_confidence
     })
+}
+
+async fn extract_image_similarity_using_custom_v2_thumbnails(options: &ComputeImageSimilarityOptions, pool: &Pool<Sqlite>) -> Result<(f32, f32)> {
+    let img_a = query_thumbnail_table_at_most_width_length(
+        &options.image_path_a, 
+        options.max_dimension.unwrap_or(32),
+        pool).await
+        .map_err(|e| Error::new(ErrorKind::InvalidData, format!("{}", e)))?;
+
+    if img_a.is_none() {
+        return Err(Error::new(ErrorKind::InvalidData, format!("img_a not found")));
+    }
+
+    let img_b = query_thumbnail_table_at_most_width_length(
+        &options.image_path_b, 
+        options.max_dimension.unwrap_or(32),
+        pool).await
+        .map_err(|e| Error::new(ErrorKind::InvalidData, format!("{}", e)))?;
+
+    if img_b.is_none() {
+        return Err(Error::new(ErrorKind::InvalidData, format!("img_b not found")));
+    }
+
+    let img_a = img_a.unwrap().to_image()?;
+    let img_b = img_b.unwrap().to_image()?;
+
+    extract_image_similarity_using_ssim_confidence(img_a, img_b, options)
 }
 
 pub fn compute_comparison_key(image_path_a: &str, image_path_b: &str) -> i32 {
@@ -51,6 +98,10 @@ fn extract_image_similarity_using_custom_v1(options: &ComputeImageSimilarityOpti
     let img_b = image::open(Path::new(&options.image_path_b))
         .map_err(|e| Error::new(ErrorKind::InvalidData, e))?;
 
+    extract_image_similarity_using_ssim_confidence(img_a, img_b, options)
+}
+
+pub fn extract_image_similarity_using_ssim_confidence(img_a: DynamicImage, img_b: DynamicImage, options: &ComputeImageSimilarityOptions) -> Result<(f32, f32)> {
     // Convert to grayscale first for faster processing
     let gray_img_a = img_a.grayscale();
     let gray_img_b = img_b.grayscale();

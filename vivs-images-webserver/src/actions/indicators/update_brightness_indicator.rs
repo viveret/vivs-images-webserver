@@ -5,8 +5,6 @@ use sqlx::SqlitePool;
 use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
-use crate::actions::refresh::update_image_brightness::InsertNewImageBrightnessFromDiskAction;
-use crate::actions::refresh::update_image_brightness::DeleteImageBrightnessFromSqlNotOnDiskAction;
 use crate::metrics::brightness_metrics::{get_brightness_missing_in_sql_count, get_brightness_missing_on_disk_count};
 
 
@@ -33,7 +31,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingBrightnessIndicator {
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(InsertNewImageBrightnessFromDiskAction).to_case(Case::Snake)
+        "add_brightness".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {
@@ -70,7 +68,7 @@ impl IActionIndicator for ImagesInBrightnessSqlDbWithMissingImageOnDiskIndicator
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(DeleteImageBrightnessFromSqlNotOnDiskAction).to_case(Case::Snake)
+        "delete_missing_brightness".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {

@@ -8,7 +8,8 @@ use crate::models::image::ImageFieldMeta;
 #[derive(Clone, Debug)]
 pub enum ImageComparisonAlgorithm {
     Magick,
-    CustomV1
+    CustomV1,
+    CustomV2Thumbnails
 }
 
 impl TryFrom<u8> for ImageComparisonAlgorithm {
@@ -30,6 +31,7 @@ impl TryInto<u8> for &ImageComparisonAlgorithm {
         match self {
             ImageComparisonAlgorithm::Magick => Ok(0),
             ImageComparisonAlgorithm::CustomV1 => Ok(1),
+            ImageComparisonAlgorithm::CustomV2Thumbnails => Ok(2),
         }
     }
 }
@@ -48,6 +50,12 @@ pub struct ImageSimilarity {
     pub image_path_b: String,
     pub similarity_value: f32,
     pub similarity_confidence: f32,
+}
+
+impl std::fmt::Display for ImageSimilarity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "similarity_value: {}", self.similarity_value)
+    }
 }
 
 pub const IMAGE_SIMILARITY_COLUMNS_JSON: &str = r#"

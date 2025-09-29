@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use sqlx::{Row, SqlitePool};
 
-use crate::{converters::extract_image_similarity::compute_comparison_key, database::common::execute_query};
+use crate::{converters::extract_image_similarity::compute_comparison_key, database::common::execute_query, models::image_similarity::ImageComparisonAlgorithm};
 
 
 
@@ -56,6 +56,31 @@ pub async fn get_similarity_table_count_from_db(pool: &SqlitePool) -> actix_web:
         .nth(0)
         .unwrap_or_default();
     Ok(v as usize)
+}
+
+pub async fn query_similarity_table_count(path: &str, pool: &SqlitePool) -> actix_web::Result<usize> {
+    let sql = r#"SELECT COUNT(*) 'ct' FROM image_similarity WHERE image_path_a = ? OR image_path_b = ?;"#;
+    let rows = execute_query(pool, sql, vec![ path, path ]).await?;
+
+    let v: u32 = rows.iter()
+        .filter_map(|r| r.try_get("ct").ok())
+        .nth(0)
+        .unwrap_or_default();
+    Ok(v as usize)
+}
+
+pub async fn query_similarity_table_paths_using_thumbnail_algo(comp_algo: ImageComparisonAlgorithm, pool: &SqlitePool) -> actix_web::Result<Vec<String>> {
+    let sql = r#"
+    SELECT DISTINCT image_path_a 'path' FROM image_similarity WHERE image_comparison_algorithm = ? UNION
+        SELECT DISTINCT image_path_b 'path' FROM image_similarity WHERE image_comparison_algorithm = ?
+    ;"#;
+    let comp_algo = (comp_algo as u8).to_string();
+    let rows = execute_query(pool, sql, vec![ &comp_algo, &comp_algo ]).await?;
+
+    let v: Vec<String> = rows.iter()
+        .filter_map(|r| r.try_get("path").ok())
+        .collect();
+    Ok(v)
 }
 
 pub async fn get_count_of_comparisons_per_image_path(pool: &SqlitePool) -> actix_web::Result<HashMap<String, u32>> {

@@ -67,9 +67,9 @@ pub async fn index(
             <h4>Dataset Information</h4>
             <ul>
                 <li>Total Images on disk: {}</li>
-                <li>Total Images in database: {} ({:.2}% of expected {})</li>
+                <li>Total Image Exif values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
-                <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
+                <li>Total Image Similarity values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Thumbnails: {} ({:.2}% of expected {})</li>
                 <li>Categories: {}</li>
                 <li>Last Updated: {}</li>

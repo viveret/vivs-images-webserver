@@ -97,3 +97,12 @@ impl ImageExif {
         serde_json::from_str::<Vec<ImageFieldMeta>>(IMAGE_EXIF_COLUMNS_JSON).unwrap()
     }
 }
+
+impl std::fmt::Display for ImageExif {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "image_taken_at: {:?}, ", self.image_taken_at)?;
+        write!(f, "camera_make: {:?}, ", self.camera_make)?;
+        write!(f, "orientation: {:?}", self.orientation)?;
+        Ok(())
+    }
+}

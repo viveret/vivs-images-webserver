@@ -3,17 +3,17 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 
+use crate::actions::refresh::analysis_task_item_processor::TaskOrchestrationOptions;
+use crate::actions::refresh::delete_missing_brightness_action::DeleteMissingBrightnessOrchestratorAction;
+use crate::actions::refresh::delete_missing_exif_action::DeleteMissingExifOrchestratorAction;
+use crate::actions::refresh::delete_missing_similarity_action::DeleteMissingSimilarityOrchestratorAction;
+use crate::actions::refresh::delete_missing_thumbnails_action::DeleteMissingThumbnailsOrchestratorAction;
+use crate::actions::refresh::new_brightness_action::InsertNewBrightnessOrchestratorAction;
+use crate::actions::refresh::new_exif_action::InsertNewExifsOrchestratorAction;
+use crate::actions::refresh::new_similarity_action::{InsertNewSimilaritysFromDiskOrchestratorAction, InsertNewSimilaritysFromThumbnailsOrchestratorAction};
 use crate::actions::refresh::new_thumbnail_action::InsertNewThumbnailsOrchestratorAction;
-use crate::actions::refresh::update_image_brightness::InsertNewImageBrightnessFromDiskAction;
-use crate::actions::refresh::update_image_brightness::DeleteImageBrightnessFromSqlNotOnDiskAction;
 use crate::actions::channels::TaskToWorkerSender;
-use crate::actions::refresh::update_image_exif::DeleteImageExifFromSqlNotOnDiskAction;
-use crate::actions::refresh::update_image_exif::InsertNewImageExifFromDiskAction;
-use crate::actions::refresh::update_image_similarity::DeleteImageSimilarityFromSqlNotOnDiskAction;
-use crate::actions::refresh::update_image_similarity::InsertNewImageSimilarityFromDiskAction;
-use crate::actions::refresh::update_image_similarity::InsertNewImageSimilarityFromSqlDbAction;
-use crate::actions::refresh::update_image_thumbnail::DeleteImageThumbnailFromSqlNotOnDiskAction;
-use crate::actions::refresh::update_image_thumbnail::InsertNewImageThumbnailFromDiskAction;
+
 
 #[async_trait]
 pub trait IWebServerAction: Send + Sync {
@@ -22,7 +22,13 @@ pub trait IWebServerAction: Send + Sync {
     fn get_description(&self) -> String;
     fn get_is_runnable(&self) -> bool;
     fn get_can_dry_run(&self) -> bool;
-    async fn run_task(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32) -> actix_web::Result<(), Box<dyn std::error::Error + Send>>;
+    async fn run_task(&self, 
+        pool: Pool<Sqlite>, 
+        send: TaskToWorkerSender, 
+        dry_run: bool, 
+        task_id: u32,
+        orch_options: TaskOrchestrationOptions
+    ) -> actix_web::Result<(), Box<dyn std::error::Error + Send>>;
 }
 
 #[derive(Clone)]
@@ -65,16 +71,15 @@ pub fn find_action(name: String) -> Option<Arc<dyn IWebServerAction>> {
 
 pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
     let mut actions: Vec<Arc<dyn IWebServerAction>> = vec![
-        Arc::new(InsertNewImageBrightnessFromDiskAction::new()),
-        Arc::new(DeleteImageBrightnessFromSqlNotOnDiskAction::new()),
-        Arc::new(InsertNewImageExifFromDiskAction::new()),
-        Arc::new(DeleteImageExifFromSqlNotOnDiskAction::new()),
-        Arc::new(InsertNewImageSimilarityFromDiskAction::new()),
-        Arc::new(InsertNewImageSimilarityFromSqlDbAction::new()),
-        Arc::new(DeleteImageSimilarityFromSqlNotOnDiskAction::new()),
-        Arc::new(InsertNewImageThumbnailFromDiskAction::new()),
-        Arc::new(DeleteImageThumbnailFromSqlNotOnDiskAction::new()),
+        Arc::new(InsertNewBrightnessOrchestratorAction::new2()),
+        Arc::new(DeleteMissingBrightnessOrchestratorAction::new2()),
+        Arc::new(InsertNewExifsOrchestratorAction::new2()),
+        Arc::new(DeleteMissingExifOrchestratorAction::new2()),
+        Arc::new(InsertNewSimilaritysFromDiskOrchestratorAction::new2()),
+        Arc::new(InsertNewSimilaritysFromThumbnailsOrchestratorAction::new2()),
+        Arc::new(DeleteMissingSimilarityOrchestratorAction::new2()),
         Arc::new(InsertNewThumbnailsOrchestratorAction::new2()),
+        Arc::new(DeleteMissingThumbnailsOrchestratorAction::new2())
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());
     actions

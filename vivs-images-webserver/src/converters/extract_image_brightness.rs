@@ -4,6 +4,8 @@ use std::path::Path;
 use image::ImageError;
 use image::GenericImageView;
 
+use crate::models::image_brightness::ImageBrightness;
+
 
 pub enum ImageToBrightnessAlgo {
     SimpleImageRS,
@@ -16,10 +18,8 @@ pub struct ImageToBrightnessOptions {
 
 impl ImageToBrightnessOptions {}
 
-// Optional: Function to calculate brightness of an image (equivalent to the bash image processing)
-// This would require additional dependencies like image-rs
-pub fn extract_image_brightness(image_path: &str, _options: &ImageToBrightnessOptions) -> Result<f64, Pin<Box<ImageError>>> {
-    let img = image::open(Path::new(image_path)).map_err(|e| Pin::new(Box::new(e)))?;
+pub fn extract_image_brightness(image_path: &str, _options: &ImageToBrightnessOptions) -> Result<f32, ImageError> {
+    let img = image::open(Path::new(image_path)).map_err(|e| e)?;
     let gray_img = img.grayscale();
     let (width, height) = gray_img.dimensions();
     let total_pixels = (width * height) as f64;
@@ -32,5 +32,13 @@ pub fn extract_image_brightness(image_path: &str, _options: &ImageToBrightnessOp
     }
 
     let brightness = total_brightness / total_pixels;
-    Ok(brightness)
+    Ok(brightness as f32)
+}
+
+pub fn extract_image_brightness_model(image_path: &str, options: &ImageToBrightnessOptions) -> Result<ImageBrightness, ImageError> {
+    let brightness = extract_image_brightness(image_path, options)?;
+    Ok(ImageBrightness {
+        brightness,
+        image_path: image_path.to_string(),
+    })
 }

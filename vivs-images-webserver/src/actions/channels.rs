@@ -2,6 +2,8 @@ use std::io::ErrorKind;
 
 use crossbeam_channel::{Sender, Receiver};
 
+use crate::actions::refresh::analysis_task_item_processor::TaskOrchestrationOptions;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TaskCompletionStatus {
     NotCompleted,
@@ -28,6 +30,7 @@ pub enum MainToWorkerMessage {
     StartAction {
         action_name: String,
         dry_run: bool,
+        orch_options: TaskOrchestrationOptions,
         task_id: u32,
     },
     Shutdown,

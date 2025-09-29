@@ -40,8 +40,8 @@ pub fn resize_to_common_dimensions(
     };
 
     // Resize both images to target dimensions
-    let resized_a = img_a.resize(target_width, target_height, filter_type);
-    let resized_b = img_b.resize(target_width, target_height, filter_type);
+    let resized_a = img_a.resize_exact(target_width, target_height, filter_type);
+    let resized_b = img_b.resize_exact(target_width, target_height, filter_type);
 
     (resized_a, resized_b)
 }

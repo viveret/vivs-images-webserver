@@ -5,8 +5,6 @@ use sqlx::SqlitePool;
 use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
-use crate::actions::refresh::update_image_similarity::{InsertNewImageSimilarityFromDiskAction, InsertNewImageSimilarityFromSqlDbAction};
-use crate::actions::refresh::update_image_similarity::DeleteImageSimilarityFromSqlNotOnDiskAction;
 use crate::database::query::query_image_similarity::{get_count_of_comparisons_per_image_path, get_count_of_image_paths_from_db};
 use crate::metrics::similarity_metrics::{get_similarity_missing_in_sql_count, get_similarity_missing_on_disk_count};
 
@@ -34,7 +32,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingSimilarityIndicator {
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(InsertNewImageSimilarityFromDiskAction).to_case(Case::Snake)
+        "add_from_disk_similarity".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {
@@ -70,7 +68,7 @@ impl IActionIndicator for ImagesInSqlDbWithLessThanExpectedSimilarityIndicator {
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(InsertNewImageSimilarityFromSqlDbAction).to_case(Case::Snake)
+        "add_from_db_similarity".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {
@@ -110,7 +108,7 @@ impl IActionIndicator for ImagesInSimilaritySqlDbWithMissingImageOnDiskIndicator
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(DeleteImageSimilarityFromSqlNotOnDiskAction).to_case(Case::Snake)
+        "delete_missing_similarity".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {

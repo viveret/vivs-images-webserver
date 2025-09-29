@@ -135,3 +135,10 @@ pub fn convert_thumbnails_to_vec_vec_u8(thumbs: Vec<DynamicImage>) -> std::resul
     }
     Ok(imgs)
 }
+
+
+
+pub fn convert_vec_u8_to_image(img: &Vec<u8>) -> Result<DynamicImage> {
+    image::load_from_memory(img)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+}

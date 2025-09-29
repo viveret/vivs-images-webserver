@@ -3,7 +3,7 @@ use sqlx::{Pool, Sqlite};
 use crate::database::common::execute_update_or_insert;
 
 
-pub async fn execute_update_image_brightness_sql(image_path: &String, brightness: f64, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
+pub async fn execute_update_image_brightness_sql(image_path: &String, brightness: f32, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
     let query = r#"
         UPDATE image_brightness
         SET brightness = ?, updated_at = CURRENT_TIMESTAMP
@@ -18,7 +18,7 @@ pub async fn execute_update_image_brightness_sql(image_path: &String, brightness
     }
 }
 
-pub async fn execute_insert_image_brightness_sql(image_path: &String, brightness: f64, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
+pub async fn execute_insert_image_brightness_sql(image_path: &String, brightness: f32, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
     let query = r#"INSERT INTO image_brightness (image_path, brightness) VALUES (?, ?);"#;
     let r = execute_update_or_insert(pool, query, vec![ image_path, brightness.to_string().as_str() ]).await?;
     let r = r.rows_affected();

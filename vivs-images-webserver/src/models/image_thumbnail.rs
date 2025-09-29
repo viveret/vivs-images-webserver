@@ -1,8 +1,10 @@
 use std::cmp::max;
 
+use image::codecs::png::PngDecoder;
 use image::DynamicImage;
 use sqlx::Row;
 
+use crate::converters::extract_image_thumbnail::convert_vec_u8_to_image;
 use crate::models::image::ImageFieldMeta;
 use crate::converters::extract_image_thumbnail::ExtractImageThumbnailOptions;
 use crate::converters::extract_image_thumbnail::convert_image_to_vec_u8;
@@ -56,6 +58,14 @@ pub struct ImageThumbnail {
     pub width_and_length: u32,
     pub thumbnail_format: ThumbnailFormat,
     pub thumbnail_data: Vec<u8>,
+}
+
+impl std::fmt::Display for ImageThumbnail {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "width_and_length: {}, ", self.width_and_length)?;
+        write!(f, "thumbnail_format: {}", self.thumbnail_format)?;
+        Ok(())
+    }
 }
 
 pub const IMAGE_THUMBNAIL_COLUMNS_JSON: &str = r#"
@@ -133,5 +143,21 @@ impl ImageThumbnail {
             })
         };
         wrap(row).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    }
+    
+    pub fn to_image(&self) -> std::io::Result<DynamicImage> {
+        convert_vec_u8_to_image(&self.thumbnail_data)
+    }
+}
+
+
+
+pub struct ImageThumbnailVec(pub Vec<ImageThumbnail>);
+
+impl std::fmt::Display for ImageThumbnailVec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let self_as_strs: Vec<String> = self.0.iter().map(|x| format!("{}", x)).collect();
+        let self_as_str = self_as_strs.join(", ");
+        write!(f, "{}", self_as_str)
     }
 }

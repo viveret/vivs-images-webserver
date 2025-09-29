@@ -5,8 +5,6 @@ use sqlx::SqlitePool;
 use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
-use crate::actions::refresh::update_image_exif::InsertNewImageExifFromDiskAction;
-use crate::actions::refresh::update_image_exif::DeleteImageExifFromSqlNotOnDiskAction;
 use crate::metrics::exif_metrics::{get_exif_missing_in_sql_count, get_exif_missing_on_disk_count};
 
 
@@ -33,7 +31,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingExifIndicator {
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(InsertNewImageExifFromDiskAction).to_case(Case::Snake)
+        "add_exif".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {
@@ -70,7 +68,7 @@ impl IActionIndicator for ImagesInExifSqlDbWithMissingImageOnDiskIndicator {
     }
 
     fn get_action_name(&self) -> String {
-        name_of_type!(DeleteImageExifFromSqlNotOnDiskAction).to_case(Case::Snake)
+        "delete_missing_exif".to_string()
     }
 
     fn get_cron_schedule(&self) -> String {
