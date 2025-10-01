@@ -4,8 +4,8 @@ use itertools::Itertools;
 
 use crate::converters::comparison::compare_paths;
 use crate::converters::comparison::compare_path_pairs;
-use crate::actions::refresh::new_similarity_action::generate_unique_pairs;
-use crate::actions::refresh::analysis_task_item_processor::LogProgListenerPair;
+use crate::calc::math::generate_unique_pairs;
+use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 
 #[derive(Clone)]
 pub struct FilePathComparisonModel {

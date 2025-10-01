@@ -7,7 +7,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 
-use crate::actions::refresh::analysis_task_item_processor::LogProgListenerPair;
+use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 use crate::calc::file_paths_comparison::FilePathComparisonModel;
 use crate::converters::extract_image_exif::extract_image_exif;
 use crate::converters::extract_image_exif::ImageToExifAlgo;
@@ -16,8 +16,8 @@ use crate::database::query::query_image_exif::query_exif_table_count;
 use crate::database::update::update_image_exif::execute_insert_image_exif_sql;
 use crate::metrics::exif_metrics::get_image_path_comparison_exif_table_analysis;
 use crate::models::image_exif::ImageExif;
-use crate::actions::refresh::analysis_task_item_processor::AnalysisTaskItemProcessorOrchestrator;
-use crate::actions::refresh::analysis_task_item_processor::AnalysisTaskItemProcessor;
+use crate::actions::analysis_task_item_processor::AnalysisTaskItemProcessorOrchestrator;
+use crate::actions::analysis_task_item_processor::AnalysisTaskItemProcessor;
 
 
 
@@ -54,7 +54,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
             .map_err(|e| Box::new(std::io::Error::other(format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn exists_in_db(&self, task_input: &String, pool: Pool<Sqlite>) -> Result<bool, Box<dyn std::error::Error + Send>> {
+    async fn task_already_completed(&self, task_input: &String, pool: Pool<Sqlite>) -> Result<bool, Box<dyn std::error::Error + Send>> {
         query_exif_table_count(&task_input, &pool).await
             .map(|v| v > 0)
             .map_err(|e| Box::new(std::io::Error::other(format!("{}", e))) as Box<dyn std::error::Error + Send>)

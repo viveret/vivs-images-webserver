@@ -3,16 +3,17 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 
-use crate::actions::refresh::analysis_task_item_processor::TaskOrchestrationOptions;
+use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
+use crate::actions::export::export_image_ocr_text_to_special_dir_action::ExportOcrTextsOrchestratorAction;
 use crate::actions::refresh::delete_missing_brightness_action::DeleteMissingBrightnessOrchestratorAction;
 use crate::actions::refresh::delete_missing_exif_action::DeleteMissingExifOrchestratorAction;
 use crate::actions::refresh::delete_missing_similarity_action::DeleteMissingSimilarityOrchestratorAction;
 use crate::actions::refresh::delete_missing_thumbnails_action::DeleteMissingThumbnailsOrchestratorAction;
-use crate::actions::refresh::new_brightness_action::InsertNewBrightnessOrchestratorAction;
-use crate::actions::refresh::new_exif_action::InsertNewExifsOrchestratorAction;
-use crate::actions::refresh::new_ocr_text_action::InsertNewOcrTextsOrchestratorAction;
-use crate::actions::refresh::new_similarity_action::{InsertNewSimilaritysFromDiskOrchestratorAction, InsertNewSimilaritysFromThumbnailsOrchestratorAction};
-use crate::actions::refresh::new_thumbnail_action::InsertNewThumbnailsOrchestratorAction;
+use crate::actions::import::new_brightness_action::InsertNewBrightnessOrchestratorAction;
+use crate::actions::import::new_exif_action::InsertNewExifsOrchestratorAction;
+use crate::actions::import::new_ocr_text_action::InsertNewOcrTextsOrchestratorAction;
+use crate::actions::import::new_similarity_action::{InsertNewSimilaritysFromDiskOrchestratorAction, InsertNewSimilaritysFromThumbnailsOrchestratorAction};
+use crate::actions::import::new_thumbnail_action::InsertNewThumbnailsOrchestratorAction;
 use crate::actions::channels::TaskToWorkerSender;
 
 
@@ -82,7 +83,7 @@ pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
         Arc::new(InsertNewThumbnailsOrchestratorAction::new2()),
         Arc::new(DeleteMissingThumbnailsOrchestratorAction::new2()),
         Arc::new(InsertNewOcrTextsOrchestratorAction::new2()),
-        // Arc::new(Delete),
+        Arc::new(ExportOcrTextsOrchestratorAction::new2()),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());
     actions

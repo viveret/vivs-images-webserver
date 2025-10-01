@@ -8,7 +8,7 @@ use actix_web::HttpResponse;
 use serde::Deserialize;
 
 use crate::actions::action_registry::find_action;
-use crate::actions::refresh::analysis_task_item_processor::TaskOrchestrationOptions;
+use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::worker_thread::WorkerThread;
 use crate::view::html::layout::layout_view;
 

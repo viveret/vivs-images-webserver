@@ -1,10 +1,4 @@
-pub mod analysis_task_item_processor;
 pub mod delete_missing_brightness_action;
 pub mod delete_missing_exif_action;
 pub mod delete_missing_similarity_action;
 pub mod delete_missing_thumbnails_action;
-pub mod new_brightness_action;
-pub mod new_exif_action;
-pub mod new_similarity_action;
-pub mod new_thumbnail_action;
-pub mod new_ocr_text_action;

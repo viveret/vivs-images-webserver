@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 
-use crate::actions::refresh::analysis_task_item_processor::LogProgListenerPair;
+use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 use crate::calc::file_paths_comparison::FilePathComparisonModel;
 use crate::filesystem::query::images::get_images_in_photo_sync_path;
 use crate::database::query::query_image_brightness::get_image_paths_from_db;

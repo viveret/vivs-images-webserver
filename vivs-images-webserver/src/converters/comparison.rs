@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::calc::math::calculate_progress;
-use crate::actions::refresh::analysis_task_item_processor::LogProgListenerPair;
+use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 
 
 // Compares disk and database paths, returning differences

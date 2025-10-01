@@ -23,7 +23,7 @@ impl TopLevelMetrics {
             total_ocr_text: results.iter().map(|row| row.try_get::<u32, _>("total_ocr_text").unwrap_or_default()).max().unwrap_or_default(),
             categories: results.iter().map(|row| row.try_get::<u32, _>("total_categories").unwrap_or_default()).max().unwrap_or_default(),
             // get when DB_FILE was last updated
-            last_updated: std::fs::metadata(crate::DB_FILE)
+            last_updated: std::fs::metadata(crate::models::config::paths::DB_FILE)
                 .and_then(|meta| meta.modified())
                 .unwrap_or(SystemTime::now()),
         }

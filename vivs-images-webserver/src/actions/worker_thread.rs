@@ -15,7 +15,7 @@ use crate::actions::channels::TaskToWorkerMessage;
 use crate::actions::channels::TaskCompletionStatus;
 use crate::actions::channels::MainToWorkerMessage;
 use crate::actions::channels::MainToWorkerSender;
-use crate::actions::refresh::analysis_task_item_processor::TaskOrchestrationOptions;
+use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::task_manager::{TaskManager, WebServerActionTask};
 use crate::actions::{task_manager, thread_pool};
 

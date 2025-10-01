@@ -1,3 +1,4 @@
+pub mod config;
 pub mod image;
 pub mod image_exif;
 pub mod image_similarity;

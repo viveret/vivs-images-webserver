@@ -2,6 +2,10 @@ use std::collections::HashSet;
 
 use sqlx::{Row, SqlitePool};
 
+use crate::models::image_ocr_text::ImageOcrText;
+use crate::filesystem::query::images::get_photo_sync_path;
+use crate::filesystem::query::images::get_image_ocr_text_export_path;
+use crate::filesystem::query::images::change_base_path_of_paths;
 use crate::database::common::execute_query;
 
 
@@ -15,6 +19,12 @@ pub async fn get_ocr_text_image_paths_from_db(pool: &SqlitePool) -> actix_web::R
         .collect())
 }
 
+pub async fn query_ocr_text_from_db(image_path: &str, pool: &SqlitePool) -> actix_web::Result<Option<ImageOcrText>> {
+    let sql = r#"SELECT image_path, ocr_text FROM image_ocr_text WHERE image_path = ?"#;
+    let rows = execute_query(pool, sql, vec![ image_path ]).await?;
+    let v: Option<ImageOcrText> = rows.iter().map(ImageOcrText::new).nth(0);
+    Ok(v)
+}
 
 pub async fn query_ocr_text_table_count(image_path: &str, pool: &SqlitePool) -> actix_web::Result<usize> {
     let sql = r#"SELECT COUNT(*) 'ct' FROM image_ocr_text WHERE image_path = ?"#;
@@ -22,4 +32,12 @@ pub async fn query_ocr_text_table_count(image_path: &str, pool: &SqlitePool) -> 
     let v: Option<u32> = rows.iter().nth(0).map(|r| r.get("ct"));
     let v: usize = v.unwrap_or_default() as usize;
     Ok(v)
+}
+
+pub async fn get_expected_ocr_text_file_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
+    let image_paths = get_ocr_text_image_paths_from_db(pool).await?;
+    let new_base_path = get_image_ocr_text_export_path()?;
+    let old_base_path = get_photo_sync_path()?;
+    change_base_path_of_paths(image_paths, old_base_path, new_base_path)
+        .map_err(|e| actix_web::Error::from(e))
 }

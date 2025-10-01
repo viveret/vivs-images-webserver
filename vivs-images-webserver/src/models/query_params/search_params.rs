@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 
-use crate::{get_file_from_exe_dir, models::image::Image};
+use crate::{api::web::get_file_from_exe_dir, models::image::Image};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SearchParamFieldInput {

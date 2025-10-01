@@ -36,7 +36,7 @@ where
     async fn get_task_items_from_analysis(&self, pool: Pool<Sqlite>, analysis: TAnalysis, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TTaskItemList, Box<dyn std::error::Error + Send>>;
     async fn process_task_item(&self, task_item: TTaskItem, pool: Pool<Sqlite>) -> actix_web::Result<TTaskOutput, Box<dyn std::error::Error + Send>>;
     async fn process_task_output(&self, task_output: TTaskOutput, pool: Pool<Sqlite>) -> actix_web::Result<(), Box<dyn std::error::Error + Send>>;
-    async fn exists_in_db(&self, task_input: &TTaskItem, pool: Pool<Sqlite>) -> actix_web::Result<bool, Box<dyn std::error::Error + Send>>;
+    async fn task_already_completed(&self, task_input: &TTaskItem, pool: Pool<Sqlite>) -> actix_web::Result<bool, Box<dyn std::error::Error + Send>>;
     fn get_description(&self) -> String;
     fn get_item_name(&self) -> String;
     fn get_process_action_name(&self) -> String;
@@ -152,7 +152,7 @@ where
     ) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            while let Ok(message) = task_receiver.recv_timeout(Duration::from_secs(1)) {
+            while let Ok(message) = task_receiver.recv() {
                 match message {
                     ThreadMessage::Task(task_input, index) => {
                         let processor2 = processor.clone();
@@ -248,7 +248,7 @@ where
                 
                 rt.block_on(async move {
                     // Check if task already exists in database (async check in validation thread)
-                    let should_process = !processor.exists_in_db(&task_input, pool).await.unwrap_or(false);
+                    let should_process = !processor.task_already_completed(&task_input, pool).await.unwrap_or(false);
                     
                     // Send progress update for validation phase
                     if prog_sender.send((index, should_process)).is_err() {
@@ -274,8 +274,8 @@ where
                 let worker_index = next_worker_index % orch_options.max_concurrent;
                 next_worker_index += 1;
                 
-                if task_senders[worker_index].send(ThreadMessage::Task(tasks_vec[index].clone(), index)).is_err() {
-                    Self::send_log_error(send, task_id, "Failed to send task to worker thread".to_string())?;
+                if let Err(e) = task_senders[worker_index].send(ThreadMessage::Task(tasks_vec[index].clone(), index)) {
+                    Self::send_log_error(send, task_id, format!("Failed to send task to worker thread: {}", e))?;
                     break;
                 }
             }
