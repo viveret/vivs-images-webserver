@@ -53,6 +53,7 @@ impl std::fmt::Display for ThumbnailFormat {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ImageThumbnail {
     pub image_path: String,
     pub width_and_length: u32,

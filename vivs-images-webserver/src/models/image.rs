@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::models::image_ocr_text::ImageOcrText;
 use crate::models::image_similarity::ImageSimilarity;
 use crate::models::image_exif::ImageExif;
 use crate::models::image_brightness::ImageBrightness;
@@ -15,12 +16,14 @@ pub struct ImageFieldMeta {
     pub category: Option<String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Image {
     pub path: String,
     pub exif: Option<ImageExif>,
     pub brightness: Option<ImageBrightness>,
     pub similarity: Option<ImageSimilarity>,
     pub thumbnail: Option<ImageThumbnail>,
+    pub ocr_text: Option<ImageOcrText>,
 }
 
 impl Image {
@@ -28,6 +31,7 @@ impl Image {
         let exif = ImageExif::new(row);
         let brightness = ImageBrightness::new(row);
         let similarity = ImageSimilarity::new(row);
+        let ocr_text = ImageOcrText::new(row);
         let path = exif.image_path.clone();
         
         Image {
@@ -35,6 +39,7 @@ impl Image {
             exif: Some(exif),
             brightness: Some(brightness),
             similarity: Some(similarity),
+            ocr_text: Some(ocr_text),
             thumbnail: None,
         }
     }
@@ -43,6 +48,7 @@ impl Image {
         let mut x = ImageExif::get_meta();
         x.extend_from_slice(&ImageBrightness::get_meta());
         x.extend_from_slice(&ImageSimilarity::get_meta());
+        x.extend_from_slice(&ImageOcrText::get_meta());
         x
     }
 
@@ -57,6 +63,9 @@ impl Image {
             return Some(v);
         }
         if let Some(v) = self.similarity.as_ref().and_then(|s| s.get_field(field)) {
+            return Some(v);
+        }
+        if let Some(v) = self.ocr_text.as_ref().and_then(|s| s.get_field(field)) {
             return Some(v);
         }
         None

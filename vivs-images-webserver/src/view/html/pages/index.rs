@@ -60,6 +60,7 @@ pub async fn index(
     let similarity_percent = metrics.total_similarity as f32 / total_images_on_disk_factorial as f32 * 100.0;
     let thumbnail_expected_count = metrics.total_images * (DEFAULT_THUMBNAIL_SIZE_LIST.len() as u32);
     let thumbnail_percent = metrics.total_thumbnails as f32 / thumbnail_expected_count as f32 * 100.0;
+    let ocr_text_percent = metrics.total_ocr_text as f32 / total_images_on_disk as f32 * 100.0;
     
     // push some basic info about the app and the dataset
     let dataset_info = format!(r#"
@@ -71,6 +72,7 @@ pub async fn index(
                 <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Similarity values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Thumbnails: {} ({:.2}% of expected {})</li>
+                <li>Total Image OCR Text: {} ({:.2}% of expected {})</li>
                 <li>Categories: {}</li>
                 <li>Last Updated: {}</li>
             </ul>
@@ -80,6 +82,7 @@ pub async fn index(
     metrics.total_brightness, brightness_percent, total_images_on_disk,
     metrics.total_similarity, similarity_percent, total_images_on_disk_factorial,
     metrics.total_thumbnails, thumbnail_percent, thumbnail_expected_count,
+    metrics.total_ocr_text, ocr_text_percent, total_images_on_disk,
     metrics.categories, local_time.format("%B %d, %Y, at %T")); // show pretty date
     content.push_str(&dataset_info);
 

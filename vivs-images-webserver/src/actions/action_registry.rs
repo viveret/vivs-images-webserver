@@ -10,6 +10,7 @@ use crate::actions::refresh::delete_missing_similarity_action::DeleteMissingSimi
 use crate::actions::refresh::delete_missing_thumbnails_action::DeleteMissingThumbnailsOrchestratorAction;
 use crate::actions::refresh::new_brightness_action::InsertNewBrightnessOrchestratorAction;
 use crate::actions::refresh::new_exif_action::InsertNewExifsOrchestratorAction;
+use crate::actions::refresh::new_ocr_text_action::InsertNewOcrTextsOrchestratorAction;
 use crate::actions::refresh::new_similarity_action::{InsertNewSimilaritysFromDiskOrchestratorAction, InsertNewSimilaritysFromThumbnailsOrchestratorAction};
 use crate::actions::refresh::new_thumbnail_action::InsertNewThumbnailsOrchestratorAction;
 use crate::actions::channels::TaskToWorkerSender;
@@ -79,7 +80,9 @@ pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
         Arc::new(InsertNewSimilaritysFromThumbnailsOrchestratorAction::new2()),
         Arc::new(DeleteMissingSimilarityOrchestratorAction::new2()),
         Arc::new(InsertNewThumbnailsOrchestratorAction::new2()),
-        Arc::new(DeleteMissingThumbnailsOrchestratorAction::new2())
+        Arc::new(DeleteMissingThumbnailsOrchestratorAction::new2()),
+        Arc::new(InsertNewOcrTextsOrchestratorAction::new2()),
+        // Arc::new(Delete),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());
     actions

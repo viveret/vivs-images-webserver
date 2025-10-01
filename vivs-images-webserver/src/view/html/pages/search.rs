@@ -27,7 +27,7 @@ pub async fn search_images(
         .await?;
 
     let params_title = params.to_string();
-    let columns_default = ["thumbnail", "path", "camera_model", "lens_model", "brightness", "image_taken_at"];
+    let columns_default = ["thumbnail", "ocr_text", "camera_model", "lens_model", "brightness", "image_taken_at"];
     let columns_default = columns_default.map(String::from).to_vec();
     let columns = params.get_columns_to_display().unwrap_or(columns_default);
     let column_titles = SearchParams::get_column_titles(&columns);

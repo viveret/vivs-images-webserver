@@ -5,9 +5,9 @@ use sqlx::{Row, SqlitePool};
 use crate::database::common::execute_query;
 
 
-// Retrieves brightness image paths from the brightness table in the database
-pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
-    let sql = r#"SELECT image_path FROM image_brightness"#;
+// Retrieves image paths from the ocr_text table in the database
+pub async fn get_ocr_text_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
+    let sql = r#"SELECT image_path FROM image_ocr_text"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     
     Ok(rows.iter()
@@ -16,8 +16,8 @@ pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Has
 }
 
 
-pub async fn query_brightness_table_count(image_path: &str, pool: &SqlitePool) -> actix_web::Result<usize> {
-    let sql = r#"SELECT COUNT(*) 'ct' FROM image_brightness WHERE image_path = ?"#;
+pub async fn query_ocr_text_table_count(image_path: &str, pool: &SqlitePool) -> actix_web::Result<usize> {
+    let sql = r#"SELECT COUNT(*) 'ct' FROM image_ocr_text WHERE image_path = ?"#;
     let rows = execute_query(pool, sql, vec![ image_path ]).await?;
     let v: Option<u32> = rows.iter().nth(0).map(|r| r.get("ct"));
     let v: usize = v.unwrap_or_default() as usize;

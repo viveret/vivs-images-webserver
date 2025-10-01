@@ -17,7 +17,7 @@ use crate::database::query::query_image_thumbnail::query_thumbnail_table_at_most
 use crate::models::image_similarity::ImageComparisonAlgorithm;
 use crate::models::image_similarity::ImageSimilarity;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ComputeImageSimilarityOptions {
     pub algo: ImageComparisonAlgorithm,
 
@@ -36,6 +36,17 @@ impl ComputeImageSimilarityOptions {
             max_dimension: None,
             image_path_a, image_path_b
         }
+    }
+}
+
+impl std::cmp::Eq for ComputeImageSimilarityOptions {
+
+}
+
+impl std::hash::Hash for ComputeImageSimilarityOptions {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let key = compute_comparison_key(&self.image_path_a, &self.image_path_b);
+        key.hash(state);
     }
 }
 
@@ -118,8 +129,8 @@ pub fn extract_image_similarity_using_ssim_confidence(img_a: DynamicImage, img_b
     let total_pixels = (width * height) as f64;
 
     // Extract pixel data as vectors for faster access
-    let pixels_a: Vec<f64> = resized_a.pixels().map(|p| p.2[0] as f64).collect();
-    let pixels_b: Vec<f64> = resized_b.pixels().map(|p| p.2[0] as f64).collect();
+    let pixels_a: Vec<f64> = resized_a.to_luma8().pixels().map(|p| p.0[0] as f64).collect();
+    let pixels_b: Vec<f64> = resized_b.to_luma8().pixels().map(|p| p.0[0] as f64).collect();
 
     // Calculate mean luminance for both images
     let sum_a: f64 = pixels_a.iter().sum();

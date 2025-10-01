@@ -1,5 +1,4 @@
 pub mod common;
-pub mod common_action;
 pub mod channels;
 pub mod sql_db_actions;
 pub mod sql_db_action_indicators;

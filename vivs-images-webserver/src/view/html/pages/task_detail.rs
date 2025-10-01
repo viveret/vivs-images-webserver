@@ -27,9 +27,10 @@ pub async fn view_page_task_detail_get(
                 let task_output_error = task.get_error_output();
                 let action = task.action;
                 let action_title = action.get_label();
+                let progress_span = format!("<p><h4>Progress: {:.5}%</h4></p>", task.progress * 100.0);
                 let rows_html = format!(r#"<td><p>{}</p></td><td><p>{}</p></td>"#, task_output, task_output_error);
                 let table_html = create_html_table("Output", &vec!["Standard".to_string(), "Error".to_string()], &rows_html);
-                let content = format!("<p>{}</p>{}", action.get_description(), table_html);
+                let content = format!("<p>{}</p>{}{}", action.get_description(), progress_span, table_html);
                 let html = layout_view(Some(&action_title), &content);
                 Ok(HttpResponse::Ok().content_type("text/html").body(html))
             } else {

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sqlx::{Row, SqlitePool};
 
 use crate::models::image_thumbnail::ImageThumbnail;
@@ -5,7 +7,7 @@ use crate::database::common::execute_query;
 
 
 
-pub async fn get_thumbnail_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Vec<String>> {
+pub async fn get_thumbnail_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
     let sql = r#"SELECT DISTINCT image_path FROM image_thumbnail"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     

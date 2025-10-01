@@ -16,6 +16,7 @@ pub async fn query_top_level_metrics(
         SELECT COUNT(*) AS total_similarity FROM image_similarity;
         SELECT COUNT(*) AS total_brightness FROM image_brightness;
         SELECT COUNT(*) AS total_thumbnails FROM image_thumbnail;
+        SELECT COUNT(*) AS total_ocr_text FROM image_ocr_text;
         SELECT 0 AS total_categories;
     "#);
 

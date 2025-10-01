@@ -23,9 +23,7 @@ pub fn link_html(href: String, inner_content: &str) -> String {
 }
 
 pub fn encode_string(input: &str) -> String {
-    let mut output = String::new();
-    url_escape::encode_path_to_string(input, &mut output);
-    output
+    urlencoding::encode(input).to_string()
 }
 
 // Helper function to create HTML table with headers

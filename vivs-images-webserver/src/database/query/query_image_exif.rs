@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sqlx::{Row, SqlitePool};
 
 use crate::database::common::execute_query;
@@ -5,7 +7,7 @@ use crate::database::common::execute_query;
 
 
 // Retrieves exif image paths from the exif table in the database
-pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Vec<String>> {
+pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
     let sql = r#"SELECT image_path FROM image_exif"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     

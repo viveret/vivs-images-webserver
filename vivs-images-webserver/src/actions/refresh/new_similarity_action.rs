@@ -1,18 +1,19 @@
+use std::collections::HashSet;
 use std::io::ErrorKind;
 use std::sync::Arc;
 
 use sqlx::{Pool, Sqlite};
 
-use crate::calc::file_paths_comparison::FilePathComparisonModel;
+use crate::actions::refresh::analysis_task_item_processor::LogProgListenerPair;
+use crate::calc::file_paths_comparison::CrossFilePathComparisonModel;
+use crate::calc::math::calculate_progress;
 use crate::converters::extract_image_similarity::extract_image_similarity;
 use crate::converters::extract_image_similarity::ComputeImageSimilarityOptions;
-use crate::database::query::query_image_exif::get_image_paths_from_db;
 use crate::database::query::query_image_similarity::get_image_similarity_value_exists_in_db;
-use crate::database::query::query_image_similarity::get_similarity_table_count_from_db;
-use crate::database::query::query_image_similarity::query_similarity_table_paths_using_thumbnail_algo;
+use crate::database::query::query_image_similarity::query_similarity_table_pairs_using_thumbnail_algo;
 use crate::database::query::query_image_thumbnail::get_thumbnail_image_paths_from_db;
 use crate::database::update::update_image_similarity::execute_insert_image_similarity_sql;
-use crate::metrics::similarity_metrics::get_image_path_comparison_analysis;
+use crate::metrics::similarity_metrics::get_image_paths_full_difference_similarity_analysis;
 use crate::models::image_similarity::ImageComparisonAlgorithm;
 use crate::models::image_similarity::ImageSimilarity;
 use crate::actions::refresh::analysis_task_item_processor::AnalysisTaskItemProcessorOrchestrator;
@@ -21,11 +22,19 @@ use crate::actions::refresh::analysis_task_item_processor::AnalysisTaskItemProce
 
 
 // Generate all unique pairs from a list of image paths
-pub fn generate_unique_pairs(image_list: &[String]) -> Vec<(String, String)> {
+pub fn generate_unique_pairs(image_list: &HashSet<String>, log_prog_listener: Option<LogProgListenerPair>) -> Vec<(String, String)> {
+    let total = image_list.len() * (image_list.len() - 1) / 2;
+    if let Some(x) = &log_prog_listener { x.1( &format!("generating {} unique pairs", total) ); }
+    let mut num_processed = 0;
     let mut pairs = Vec::new();
     for (i, path_a) in image_list.iter().enumerate() {
         for path_b in image_list.iter().skip(i + 1) {
             pairs.push((path_a.clone(), path_b.clone()));
+            num_processed += 1;
+
+            if num_processed % 1000 == 0 {
+                if let Some(x) = &log_prog_listener { x.0.as_ref()( calculate_progress(num_processed, total) ) }
+            }
         }
     }
     pairs
@@ -41,20 +50,36 @@ use async_trait::async_trait;
 
 
 #[async_trait]
-impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, Arc<ImageSimilarity>> for SimilarityFromDiskProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
-        get_image_path_comparison_analysis(&pool).await
+impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> for SimilarityFromDiskProcessor {
+    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<CrossFilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+        get_image_paths_full_difference_similarity_analysis(&pool, log_prog_listener).await
             .map(|v| Arc::new(v))
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>) -> Result<Vec<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
-        Ok(generate_unique_pairs(&analysis.files_missing_from_a)
-            .into_iter()
-            .map(|x| ComputeImageSimilarityOptions::new_defaults(x.0, x.1))
-            .map(Arc::new)
-            .collect()
-        )
+    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<CrossFilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
+        if let Some(log_prog_listener) = log_prog_listener {
+            let total = analysis.pairs_missing_from_b.len();
+            Ok(analysis.pairs_missing_from_b
+                .iter()
+                .enumerate()
+                .map(|(i, x)| {
+                    if i % 4000 == 0 {
+                        log_prog_listener.0(calculate_progress(i, total));
+                    }
+                    ComputeImageSimilarityOptions::new_defaults(x.0.clone(), x.1.clone())
+                })
+                .map(Arc::new)
+                .collect()
+            )
+        } else {
+            Ok(analysis.pairs_missing_from_b
+                .iter()
+                .map(|x| ComputeImageSimilarityOptions::new_defaults(x.0.clone(), x.1.clone()))
+                .map(Arc::new)
+                .collect()
+            )
+        }
     }
 
     async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, pool: Pool<Sqlite>) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
@@ -94,7 +119,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, Arc<ComputeImageSim
 
 pub struct InsertNewSimilaritysFromDiskOrchestratorAction;
 impl InsertNewSimilaritysFromDiskOrchestratorAction {
-    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, Arc<ImageSimilarity>> {
+    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(SimilarityFromDiskProcessor::new()))
     }
 }
@@ -113,29 +138,64 @@ impl SimilarityFromThumbnailsProcessor {
 }
 
 #[async_trait]
-impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, Arc<ImageSimilarity>> for SimilarityFromThumbnailsProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> for SimilarityFromThumbnailsProcessor {
+    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<CrossFilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+        if let Some(x) = &log_prog_listener {
+            x.1("getting thumbnail image paths from db");
+            x.0(0.3);
+        }
         let thumbnail_paths = 
         get_thumbnail_image_paths_from_db(&pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
-        let similarity_paths_used_thumbnail_algo = query_similarity_table_paths_using_thumbnail_algo(ImageComparisonAlgorithm::CustomV2Thumbnails, &pool).await
+        
+        if let Some(x) = &log_prog_listener {
+            x.1("getting similarity image pairs from db");
+            x.0(0.6);
+        }
+        let similarity_pairs_used_thumbnail_algo = query_similarity_table_pairs_using_thumbnail_algo(ImageComparisonAlgorithm::CustomV2Thumbnails, &pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
-        Ok(Arc::new(FilePathComparisonModel::new(thumbnail_paths, "thumbnail paths", similarity_paths_used_thumbnail_algo, "similarity paths")))
+
+        if let Some(x) = &log_prog_listener {
+            x.1("getting comparison of image paths");
+            x.0(0.9);
+        }
+
+        Ok(Arc::new(CrossFilePathComparisonModel::new_easy_2(thumbnail_paths, "thumbnail paths", similarity_pairs_used_thumbnail_algo, "similarity paths", log_prog_listener)))
     }
 
-    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>) -> Result<Vec<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
-        Ok(generate_unique_pairs(&analysis.files_missing_from_a)
-            .into_iter()
-            .map(|x| ComputeImageSimilarityOptions {
-                algo: ImageComparisonAlgorithm::CustomV2Thumbnails,
-                max_dimension: Some(32),
-                filter_type: Some(image::imageops::FilterType::Nearest),
-                image_path_a: x.0,
-                image_path_b: x.1
-            })
-            .map(Arc::new)
-            .collect()
-        )
+    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<CrossFilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
+        if let Some(log_prog_listener) = log_prog_listener {
+            let total = analysis.pairs_missing_from_b.len();
+            Ok(analysis.pairs_missing_from_b
+                .iter()
+                .enumerate()
+                .map(|(i, x)| {
+                    log_prog_listener.0(calculate_progress(i, total));
+                    ComputeImageSimilarityOptions {
+                        algo: ImageComparisonAlgorithm::CustomV2Thumbnails,
+                        max_dimension: Some(32),
+                        filter_type: Some(image::imageops::FilterType::Nearest),
+                        image_path_a: x.0.clone(),
+                        image_path_b: x.1.clone()
+                    }
+                })
+                .map(Arc::new)
+                .collect()
+            )
+        } else {
+            Ok(analysis.pairs_missing_from_b
+                .iter()
+                .map(|x| ComputeImageSimilarityOptions {
+                    algo: ImageComparisonAlgorithm::CustomV2Thumbnails,
+                    max_dimension: Some(32),
+                    filter_type: Some(image::imageops::FilterType::Nearest),
+                    image_path_a: x.0.clone(),
+                    image_path_b: x.1.clone()
+                })
+                .map(Arc::new)
+                .collect()
+            )
+        }
     }
 
     async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, pool: Pool<Sqlite>) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
@@ -173,7 +233,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, Arc<ComputeImageSim
     }
 }
 
-pub type InsertNewSimilaritysFromThumbnailsOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, Arc<ImageSimilarity>>;
+pub type InsertNewSimilaritysFromThumbnailsOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>>;
 impl InsertNewSimilaritysFromThumbnailsOrchestratorAction {
     pub fn new2() -> Self {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(SimilarityFromThumbnailsProcessor::new()))

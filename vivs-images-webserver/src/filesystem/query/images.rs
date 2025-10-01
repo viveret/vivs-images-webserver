@@ -1,9 +1,10 @@
+use std::collections::HashSet;
+
 use homedir::my_home;
 
 
-pub fn get_images_in_folder(folder: String) -> Vec<String> {
-    let mut results = Vec::new();
-    // println!("traversing folder {}", folder);
+pub fn get_images_in_folder(folder: String) -> HashSet<String> {
+    let mut results = HashSet::new();
 
     if let Ok(entries) = std::fs::read_dir(folder) {
         for entry in entries.flatten() {
@@ -18,12 +19,14 @@ pub fn get_images_in_folder(folder: String) -> Vec<String> {
                         file_name_lower.ends_with(".gif") ||
                         file_name_lower.ends_with(".webp") {
                             if let Ok(full_path) = entry.path().canonicalize() {
-                                results.push(full_path.to_string_lossy().into_owned());
+                                results.insert(full_path.to_string_lossy().into_owned());
                             }
                         }
                     }
                 } else if file_type.is_dir() {
-                    results.extend_from_slice(&get_images_in_folder(entry.path().to_str().unwrap().to_string()));
+                    for e in get_images_in_folder(entry.path().to_str().unwrap().to_string()) {
+                        results.insert(e);
+                    }
                 } else {
                     println!("unexpected file type {:?}", file_type)
                 }
@@ -50,7 +53,7 @@ pub fn get_photo_sync_path() -> actix_web::Result<String> {
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Path contains invalid UTF-8"))
 }
 
-pub fn get_images_in_photo_sync_path() -> actix_web::Result<Vec<String>> {
+pub fn get_images_in_photo_sync_path() -> actix_web::Result<HashSet<String>> {
     let images_path = get_photo_sync_path()?;
     Ok(get_images_in_folder(images_path))
 }

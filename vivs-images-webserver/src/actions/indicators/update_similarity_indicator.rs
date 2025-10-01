@@ -6,7 +6,7 @@ use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
 use crate::database::query::query_image_similarity::{get_count_of_comparisons_per_image_path, get_count_of_image_paths_from_db};
-use crate::metrics::similarity_metrics::{get_similarity_missing_in_sql_count, get_similarity_missing_on_disk_count};
+use crate::metrics::similarity_metrics::{get_simple_similarity_missing_in_sql_count, get_simple_similarity_missing_on_disk_count};
 
 
 
@@ -40,7 +40,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingSimilarityIndicator {
     }
 
     async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
-        let (difference_total, msg) = get_similarity_missing_in_sql_count(pool).await?;
+        let (difference_total, msg) = get_simple_similarity_missing_in_sql_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }
 }
@@ -116,7 +116,7 @@ impl IActionIndicator for ImagesInSimilaritySqlDbWithMissingImageOnDiskIndicator
     }
 
     async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
-        let (difference_total, msg) = get_similarity_missing_on_disk_count(pool).await?;
+        let (difference_total, msg) = get_simple_similarity_missing_on_disk_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }
 }

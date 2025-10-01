@@ -5,6 +5,8 @@ use crate::actions::indicators::update_brightness_indicator::ImagesInBrightnessS
 use crate::actions::action_indicator::IActionIndicator;
 use crate::actions::indicators::update_exif_indicator::ImagesOnDiskWithMissingExifIndicator;
 use crate::actions::indicators::update_exif_indicator::ImagesInExifSqlDbWithMissingImageOnDiskIndicator;
+use crate::actions::indicators::update_ocr_text_indicator::ImagesInOcrTextSqlDbWithMissingImageOnDiskIndicator;
+use crate::actions::indicators::update_ocr_text_indicator::ImagesOnDiskWithMissingOcrTextIndicator;
 use crate::actions::indicators::update_similarity_indicator::ImagesInSimilaritySqlDbWithMissingImageOnDiskIndicator;
 use crate::actions::indicators::update_similarity_indicator::ImagesInSqlDbWithLessThanExpectedSimilarityIndicator;
 use crate::actions::indicators::update_similarity_indicator::ImagesOnDiskWithMissingSimilarityIndicator;
@@ -24,5 +26,7 @@ pub fn get_sql_db_action_indicators() -> Vec<Rc<dyn IActionIndicator>> {
         Rc::new(ImagesOnDiskWithMissingSimilarityIndicator::new()),
         Rc::new(ImagesInThumbnailSqlDbWithMissingImageOnDiskIndicator::new()),
         Rc::new(ImagesOnDiskWithMissingThumbnailIndicator::new()),
+        Rc::new(ImagesOnDiskWithMissingOcrTextIndicator::new()),
+        Rc::new(ImagesInOcrTextSqlDbWithMissingImageOnDiskIndicator::new()),
     ]
 }

@@ -1,11 +1,13 @@
 // new_brightness_action.rs
 
+use std::collections::HashSet;
 use std::io::ErrorKind;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 
+use crate::actions::refresh::analysis_task_item_processor::LogProgListenerPair;
 use crate::calc::file_paths_comparison::FilePathComparisonModel;
 use crate::converters::extract_image_brightness::extract_image_brightness_model;
 use crate::converters::extract_image_brightness::ImageToBrightnessAlgo;
@@ -25,14 +27,14 @@ impl BrightnessProcessor {
 
 
 #[async_trait]
-impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, Arc<ImageBrightness>> for BrightnessProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
-        get_image_path_comparison_brightness_table_analysis(&pool).await
+impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageBrightness>> for BrightnessProcessor {
+    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+        get_image_path_comparison_brightness_table_analysis(&pool, log_prog_listener).await
             .map(|v| Arc::new(v))
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>) -> Result<Vec<String>, Box<dyn std::error::Error + Send>> {
+    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<String>, Box<dyn std::error::Error + Send>> {
         Ok(analysis.files_missing_from_a.clone())
     }
 
@@ -72,7 +74,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, Arc<ImageBr
     }
 }
 
-pub type InsertNewBrightnessOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, Arc<ImageBrightness>>;
+pub type InsertNewBrightnessOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageBrightness>>;
 impl InsertNewBrightnessOrchestratorAction {
     pub fn new2() -> Self {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(BrightnessProcessor::new()))

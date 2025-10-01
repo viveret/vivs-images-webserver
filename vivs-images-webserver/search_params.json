@@ -5,10 +5,21 @@
         "label": "Search Query",
         "input_type": "text",
         "placeholder": "Enter search query",
-        "sql_field": "image_exif.image_path",
+        "sql_field": null,
         "default": null,
         "is_regular": false,
         "is_advanced": false,
+        "is_for_display": false
+    },
+    {
+        "name": "ocr_text",
+        "label": "OCR Text",
+        "input_type": "text",
+        "placeholder": "e.g., what is up gamers", 
+        "sql_field": "image_ocr_text.ocr_text",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
         "is_for_display": false
     },
     {
@@ -21,6 +32,17 @@
         "is_regular": false,
         "is_advanced": true,
         "is_for_display": true
+    },
+    {
+        "name": "image_path",
+        "label": "Image File Path",
+        "input_type": "text",
+        "placeholder": "Path of the image file",
+        "sql_field": "image_exif.image_path",
+        "default": null,
+        "is_regular": false,
+        "is_advanced": false,
+        "is_for_display": false
     },
     {
         "name": "camera_model",

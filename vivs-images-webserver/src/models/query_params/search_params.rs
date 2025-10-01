@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use url_escape::decode_to_string;
 use std::collections::HashMap;
 
 use crate::{get_file_from_exe_dir, models::image::Image};
@@ -288,6 +287,9 @@ impl SearchParams {
                     value = None;
                 }
             }
+            // if let Some(value) = &value {
+            //     println!("value: {}", value);
+            // }
 
             let field_input = SearchParamFieldInput {
                 name: field.name.clone(),
@@ -307,9 +309,12 @@ impl SearchParams {
                 let mut parts = pair.splitn(2, '=');
                 let key = parts.next()?.to_string();
                 let value = parts.next().unwrap_or("").to_string();
-                let mut decoded_value = String::new();
-                decode_to_string(value, &mut decoded_value);
-                Some((key, decoded_value))
+                let decoded_value = urlencoding::decode(&value).unwrap_or_default();
+                let decoded_value = decoded_value.to_string().replace("+", " ");
+                // if decoded_value.len() > 0 {
+                //     println!("decode_to_string: {}", decoded_value);
+                // }
+                Some((key, decoded_value.to_string()))
             })
             .collect();
         

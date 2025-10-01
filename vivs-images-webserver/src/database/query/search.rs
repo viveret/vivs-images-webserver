@@ -16,11 +16,12 @@ pub async fn query_sql_db_images_by_criteria(
     limit: Option<i32>,
     offset: Option<i32>
 ) -> Result<Vec<sqlx::sqlite::SqliteRow>, actix_web::Error> {
-    let mut query = String::from("SELECT image_exif.*, image_brightness.brightness FROM image_exif");
+    let mut query = String::from("SELECT image_exif.*, image_brightness.brightness, image_ocr_text.ocr_text FROM image_exif");
     let mut params: Vec<&str> = Vec::new();
     
     // join on other tables as needed
     query.push_str(" JOIN image_brightness ON image_exif.image_path = image_brightness.image_path");
+    query.push_str(" JOIN image_ocr_text ON image_exif.image_path = image_ocr_text.image_path");
 
     let mut query_criteria_sql = String::new();
     for field_group in criteria {
@@ -100,4 +101,17 @@ pub async fn search_images_by_criteria(
 pub struct SearchImagesPageModel {
     pub total_count: usize,
     pub items: Vec<Image>,
+}
+
+
+pub async fn find_image_by_path(pool: &SqlitePool, path: &str) -> Result<Option<Image>, actix_web::Error> {
+    let mut params = HashMap::new();
+    params.insert("image_exif.image_path = ?".to_string(), path.to_string());
+    let criteria = vec![ params ];
+    let results = execute_search_images_query_with_criteria(pool, &criteria, None, Some(1), None).await?;
+    if let Some(item) = results.first() {
+        Ok(Some(item.clone()))
+    } else {
+        Ok(None)
+    }
 }

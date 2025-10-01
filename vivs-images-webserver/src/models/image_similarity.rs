@@ -5,7 +5,7 @@ use sqlx::Row;
 use crate::models::image::ImageFieldMeta;
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ImageComparisonAlgorithm {
     Magick,
     CustomV1,
@@ -43,6 +43,7 @@ impl Display for ImageComparisonAlgorithm {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ImageSimilarity {
     pub image_comparison_key: i32,
     pub image_comparison_algorithm: ImageComparisonAlgorithm,

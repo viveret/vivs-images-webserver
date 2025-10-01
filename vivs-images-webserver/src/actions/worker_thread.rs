@@ -79,12 +79,15 @@ impl WorkerThread {
         loop {
             match rx_from_worker.recv() {
                 Ok(response) => {
-                    println!("Worker response: {:?}", response);
+                    let mut is_progress_update = false;
                     match response {
                         WorkerToMainMessage::TaskStarted(_task_id) => {},
                         WorkerToMainMessage::TaskCompleted(_task_id) => {},
-                        WorkerToMainMessage::TaskProgressUpdate(_task_id, _progress) => {},
-                        WorkerToMainMessage::TaskError(_task_id, _e) => {
+                        WorkerToMainMessage::TaskProgressUpdate(_task_id, _progress) => {
+                            is_progress_update = true;
+                        },
+                        WorkerToMainMessage::TaskError(task_id, e) => {
+                            println!("worker {} error: {}", task_id, e);
                             break;
                         },
                         WorkerToMainMessage::TaskLogInfo(_, _) => {},
@@ -92,6 +95,10 @@ impl WorkerThread {
                         WorkerToMainMessage::WorkerStarted(_) => {},
                         WorkerToMainMessage::WorkerCompleted => {},
                         WorkerToMainMessage::WorkerError(_) => {},
+                    }
+
+                    if !is_progress_update {
+                        println!("Worker response: {:?}", response);
                     }
                 }
                 Err(e) => {
@@ -127,7 +134,7 @@ impl WorkerThread {
                                     worker_to_main_send_helper(&tx_to_main, WorkerToMainMessage::TaskLogError(task_id, message))?;
                                 }
                                 TaskToWorkerMessage::ProgressUpdate(task_id, progress) => {
-                                    task_manager.append_task_output(task_id, &format!("task progress {}: {}", task_id, progress));
+                                    // task_manager.append_task_output(task_id, &format!("task progress {}: {}", task_id, progress));
                                     task_manager.update_task_progress(task_id, progress);
                                     worker_to_main_send_helper(&tx_to_main, WorkerToMainMessage::TaskProgressUpdate(task_id, progress))?;
                                 }
