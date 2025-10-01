@@ -99,7 +99,7 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
 
 pub struct InsertNewSimilaritysFromDiskOrchestratorAction;
 impl InsertNewSimilaritysFromDiskOrchestratorAction {
-    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(SimilarityFromDiskProcessor::new()))
     }
 }
@@ -213,9 +213,9 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
     }
 }
 
-pub type InsertNewSimilaritysFromThumbnailsOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>>;
+pub struct InsertNewSimilaritysFromThumbnailsOrchestratorAction;
 impl InsertNewSimilaritysFromThumbnailsOrchestratorAction {
-    pub fn new2() -> Self {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(SimilarityFromThumbnailsProcessor::new()))
     }
 }

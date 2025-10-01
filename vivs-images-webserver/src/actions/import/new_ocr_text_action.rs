@@ -69,9 +69,9 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
     }
 }
 
-pub type InsertNewOcrTextsOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageOcrText>>;
+pub struct InsertNewOcrTextsOrchestratorAction;
 impl InsertNewOcrTextsOrchestratorAction {
-    pub fn new2() -> Self {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageOcrText>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(OcrTextProcessor::new()))
     }
 }

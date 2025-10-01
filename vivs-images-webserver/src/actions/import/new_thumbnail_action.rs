@@ -79,7 +79,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
 
 pub struct InsertNewThumbnailsOrchestratorAction;
 impl InsertNewThumbnailsOrchestratorAction {
-    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageThumbnailVec>> {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageThumbnailVec>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(ThumbnailProcessor::new()))
     }
 }

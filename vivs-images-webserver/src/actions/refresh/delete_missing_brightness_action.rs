@@ -65,7 +65,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
 
 pub struct DeleteMissingBrightnessOrchestratorAction;
 impl DeleteMissingBrightnessOrchestratorAction {
-    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, String> {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, String> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(BrightnessProcessor::new()))
     }
 }

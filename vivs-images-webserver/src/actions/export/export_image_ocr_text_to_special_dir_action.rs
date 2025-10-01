@@ -132,7 +132,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, ImageOcrText, Vec<I
 
 pub struct ExportOcrTextsOrchestratorAction;
 impl ExportOcrTextsOrchestratorAction {
-    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, ImageOcrText, Vec<ImageOcrText>, Arc<String>> {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, ImageOcrText, Vec<ImageOcrText>, Arc<String>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(ExportOcrTextProcessor::new()))
     }
 }

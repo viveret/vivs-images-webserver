@@ -76,7 +76,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
 
 pub struct InsertNewBrightnessOrchestratorAction;
 impl InsertNewBrightnessOrchestratorAction {
-    pub fn new2() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageBrightness>> {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageBrightness>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(BrightnessProcessor::new()))
     }
 }

@@ -73,17 +73,17 @@ pub fn find_action(name: String) -> Option<Arc<dyn IWebServerAction>> {
 
 pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
     let mut actions: Vec<Arc<dyn IWebServerAction>> = vec![
-        Arc::new(InsertNewBrightnessOrchestratorAction::new2()),
-        Arc::new(DeleteMissingBrightnessOrchestratorAction::new2()),
-        Arc::new(InsertNewExifsOrchestratorAction::new2()),
-        Arc::new(DeleteMissingExifOrchestratorAction::new2()),
-        Arc::new(InsertNewSimilaritysFromDiskOrchestratorAction::new2()),
-        Arc::new(InsertNewSimilaritysFromThumbnailsOrchestratorAction::new2()),
-        Arc::new(DeleteMissingSimilarityOrchestratorAction::new2()),
-        Arc::new(InsertNewThumbnailsOrchestratorAction::new2()),
-        Arc::new(DeleteMissingThumbnailsOrchestratorAction::new2()),
-        Arc::new(InsertNewOcrTextsOrchestratorAction::new2()),
-        Arc::new(ExportOcrTextsOrchestratorAction::new2()),
+        Arc::new(InsertNewBrightnessOrchestratorAction::new()),
+        Arc::new(DeleteMissingBrightnessOrchestratorAction::new()),
+        Arc::new(InsertNewExifsOrchestratorAction::new()),
+        Arc::new(DeleteMissingExifOrchestratorAction::new()),
+        Arc::new(InsertNewSimilaritysFromDiskOrchestratorAction::new()),
+        Arc::new(InsertNewSimilaritysFromThumbnailsOrchestratorAction::new()),
+        Arc::new(DeleteMissingSimilarityOrchestratorAction::new()),
+        Arc::new(InsertNewThumbnailsOrchestratorAction::new()),
+        Arc::new(DeleteMissingThumbnailsOrchestratorAction::new()),
+        Arc::new(InsertNewOcrTextsOrchestratorAction::new()),
+        Arc::new(ExportOcrTextsOrchestratorAction::new()),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());
     actions

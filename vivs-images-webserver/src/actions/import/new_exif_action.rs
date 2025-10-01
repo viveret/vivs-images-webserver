@@ -73,9 +73,9 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
     }
 }
 
-pub type InsertNewExifsOrchestratorAction = AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageExif>>;
+pub struct InsertNewExifsOrchestratorAction;
 impl InsertNewExifsOrchestratorAction {
-    pub fn new2() -> Self {
+    pub fn new() -> AnalysisTaskItemProcessorOrchestrator<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageExif>> {
         AnalysisTaskItemProcessorOrchestrator::new(Arc::new(ExifProcessor::new()))
     }
 }
