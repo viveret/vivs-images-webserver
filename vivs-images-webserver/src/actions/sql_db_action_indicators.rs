@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use crate::actions::indicators::update_aspect_ratio_indicator::ImagesInAspectRatioSqlDbWithMissingImageOnDiskIndicator;
+use crate::actions::indicators::update_aspect_ratio_indicator::ImagesOnDiskWithMissingAspectRatioIndicator;
 use crate::actions::indicators::update_brightness_indicator::ImagesOnDiskWithMissingBrightnessIndicator;
 use crate::actions::indicators::update_brightness_indicator::ImagesInBrightnessSqlDbWithMissingImageOnDiskIndicator;
 use crate::actions::action_indicator::IActionIndicator;
@@ -28,5 +30,7 @@ pub fn get_sql_db_action_indicators() -> Vec<Rc<dyn IActionIndicator>> {
         Rc::new(ImagesOnDiskWithMissingThumbnailIndicator::new()),
         Rc::new(ImagesOnDiskWithMissingOcrTextIndicator::new()),
         Rc::new(ImagesInOcrTextSqlDbWithMissingImageOnDiskIndicator::new()),
+        Rc::new(ImagesInAspectRatioSqlDbWithMissingImageOnDiskIndicator::new()),
+        Rc::new(ImagesOnDiskWithMissingAspectRatioIndicator::new()),
     ]
 }

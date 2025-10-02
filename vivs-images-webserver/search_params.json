@@ -1,4 +1,3 @@
-
 [
     {
         "name": "query",
@@ -178,7 +177,7 @@
     },
     {
         "name": 	"width_min",
-        "label": 	"Width Min (px)",
+        "label": 	"Width Min exif (px)",
         "input_type": 	"number",
         "placeholder": 	"e.g., 800",
         "sql_field": 	"image_exif.width",
@@ -189,7 +188,7 @@
     },
     {
         "name": 	"width_max",
-        "label": 	"Width Max (px)",
+        "label": 	"Width Max exif (px)",
         "input_type": 	"number",
         "placeholder": 	"e.g., 6000",
         "sql_field": 	"image_exif.width",
@@ -200,7 +199,7 @@
     },
     {
         "name": 	"height_min",
-        "label": 	"Height Min (px)",
+        "label": 	"Height Min exif (px)",
         "input_type": 	"number",
         "placeholder": 	"e.g., 600",
         "sql_field": 	"image_exif.height",
@@ -211,7 +210,7 @@
     },
     {
         "name": 	"height_max",
-        "label": 	"Height Max (px)",
+        "label": 	"Height Max exif (px)",
         "input_type": 	"number",
         "placeholder": 	"e.g., 4000",
         "sql_field": 	"image_exif.height",
@@ -229,17 +228,6 @@
         "default": null,
         "is_advanced": false,
         "is_regular": true,
-        "is_for_display": false
-    },
-    {
-        "name": 	"aspect_ratio",
-        "label": 	"Aspect Ratio",
-        "input_type": 	"text",
-        "placeholder": 	"e.g., 16:9, 4:3",
-        "sql_field": 	null,
-        "default": null,
-        "is_advanced": false,
-        "is_regular": false,
         "is_for_display": false
     },
     {
@@ -328,6 +316,94 @@
         "default": null,
         "is_advanced": false,
         "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"width_pixels_min",
+        "label": 	"Width Min (px)",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., 800",
+        "sql_field": 	"image_aspect_ratio.width_pixels",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"width_pixels_max",
+        "label": 	"Width Max (px)",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., 6000",
+        "sql_field": 	"image_aspect_ratio.width_pixels",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"height_pixels_min",
+        "label": 	"Height Min (px)",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., 600",
+        "sql_field": 	"image_aspect_ratio.height_pixels",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"height_pixels_max",
+        "label": 	"Height Max (px)",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., 4000",
+        "sql_field": 	"image_aspect_ratio.height_pixels",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"aspect_ratio_min",
+        "label": 	"Aspect Ratio Min",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., 1.4, 16:9, 4:3",
+        "sql_field": 	"image_aspect_ratio.aspect_ratio",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"aspect_ratio_max",
+        "label": 	"Aspect Ratio Max",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., 1.4, 16:9, 4:3",
+        "sql_field": 	"image_aspect_ratio.aspect_ratio",
+        "default": null,
+        "is_advanced": false,
+        "is_regular": true,
+        "is_for_display": false
+    },
+    {
+        "name": 	"quality_min",
+        "label": 	"Quality Min",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., Low, Med, HD",
+        "sql_field": 	"image_aspect_ratio.quality",
+        "default": null,
+        "is_advanced": true,
+        "is_regular": false,
+        "is_for_display": false
+    },
+    {
+        "name": 	"quality_max",
+        "label": 	"Quality Max",
+        "input_type": 	"number",
+        "placeholder": 	"e.g., Low, Med, HD",
+        "sql_field": 	"image_aspect_ratio.quality",
+        "default": null,
+        "is_advanced": true,
+        "is_regular": false,
         "is_for_display": false
     },
     {

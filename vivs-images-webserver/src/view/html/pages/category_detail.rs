@@ -26,8 +26,8 @@ pub async fn category_detail(
     if !filter_value.is_empty() {
         let mut criteria = HashMap::new();
         criteria.insert(category.to_string(), filter_value.to_string());
-
-        let rows = execute_search_images_query_with_criteria(pool.get_ref(), &vec![criteria], Some("image_taken_at DESC"), Some(100), Some(0))
+        let criteria_list  = vec![("".to_string(), criteria)];
+        let rows = execute_search_images_query_with_criteria(pool.get_ref(), &criteria_list, Some("image_taken_at DESC"), Some(100), Some(0))
             .await?;
 
         if !rows.is_empty() {

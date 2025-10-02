@@ -5,6 +5,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::export::export_image_ocr_text_to_special_dir_action::ExportOcrTextsOrchestratorAction;
+use crate::actions::import::calc_aspect_ratio_action::InsertNewAspectRatioOrchestratorAction;
 use crate::actions::refresh::delete_missing_brightness_action::DeleteMissingBrightnessOrchestratorAction;
 use crate::actions::refresh::delete_missing_exif_action::DeleteMissingExifOrchestratorAction;
 use crate::actions::refresh::delete_missing_similarity_action::DeleteMissingSimilarityOrchestratorAction;
@@ -84,6 +85,8 @@ pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
         Arc::new(DeleteMissingThumbnailsOrchestratorAction::new()),
         Arc::new(InsertNewOcrTextsOrchestratorAction::new()),
         Arc::new(ExportOcrTextsOrchestratorAction::new()),
+        Arc::new(InsertNewAspectRatioOrchestratorAction::new()),
+        // Arc::new(DeleteMissingAspectRatioOrchestratorAction::new()),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());
     actions

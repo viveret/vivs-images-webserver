@@ -8,7 +8,7 @@ use crate::view::html::model_views::search_params_simple::gen_regular_search_htm
 
 
 pub fn gen_advanced_search_html(params: &SearchParams) -> String {
-    params.fields
+    params.fields.fields
         .iter()
         .filter(|f| f.field_meta.is_advanced)
         .map(|field| format!(r#"<div class="advanced-form-group-item">{}</div>"#, field.to_html()))

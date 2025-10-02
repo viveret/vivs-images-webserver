@@ -1,3 +1,4 @@
+pub mod update_image_aspect_ratio;
 pub mod update_image_brightness;
 pub mod update_image_exif;
 pub mod update_image_similarity;

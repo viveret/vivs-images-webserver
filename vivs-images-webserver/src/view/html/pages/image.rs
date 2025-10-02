@@ -72,7 +72,15 @@ pub async fn view_image(
             &htmlentity::entity::CharacterSet::HtmlAndNonASCII,
         ).to_string().unwrap_or_default();
         let ocr_text = format!("<h4>ocr text:</h4><p><textarea>{}</textarea></p><p>{}</p>", ocr_text, ocr_text);
-        let body_html = format!("{}{}{}{}", image_html(&params.image_path, Some(200)), ocr_text, thumbnails_html, table_html);
+        let aspect_ratio_html = format!("<p>aspect ratio: {}</p>", image.aspect_ratio.map(|x| x.to_string()).unwrap_or_default());
+
+        let body_html = format!("{}{}{}<h4>other properties:</h4>{}{}", 
+            image_html(&params.image_path, Some(200)),
+            ocr_text,
+            thumbnails_html,
+            aspect_ratio_html,
+            table_html
+        );
 
         let html = layout_view(Some("Image Details"), &body_html);
         Ok(HttpResponse::Ok().content_type("text/html").body(html))

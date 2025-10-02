@@ -1,3 +1,4 @@
+pub mod aspect_ratio_metrics;
 pub mod brightness_metrics;
 pub mod exif_metrics;
 pub mod similarity_metrics;

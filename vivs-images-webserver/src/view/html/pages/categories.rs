@@ -56,8 +56,8 @@ pub async fn view_page_categories(
         if CATEGORIES.contains(&category.as_str()) {
             let mut criteria = HashMap::new();
             criteria.insert(category.to_string(), value.to_string());
-
-            let rows = execute_search_images_query_with_criteria(pool.get_ref(), &vec![criteria], Some("image_taken_at DESC"), params.get_limit(), params.get_offset())
+            let criteria_list = vec![("".to_string(), criteria)];
+            let rows = execute_search_images_query_with_criteria(pool.get_ref(), &criteria_list, Some("image_taken_at DESC"), params.get_limit(), params.get_offset())
                 .await?;
 
             if !rows.is_empty() {

@@ -7,7 +7,7 @@ use crate::view::html::model_views::search_params::query_string_input;
 
 
 pub fn gen_regular_search_html(params: &SearchParams) -> String {
-    params.fields
+    params.fields.fields
         .iter()
         .filter(|f| f.field_meta.is_regular && !f.field_meta.is_advanced)
         .map(|field| format!(r#"<div class="regular-form-group-item">{}</div>"#, field.to_html()))

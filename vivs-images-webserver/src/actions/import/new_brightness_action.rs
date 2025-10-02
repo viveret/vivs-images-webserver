@@ -35,7 +35,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
     }
 
     async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<String>, Box<dyn std::error::Error + Send>> {
-        Ok(analysis.files_missing_from_a.clone())
+        Ok(analysis.files_missing_from_b.clone())
     }
 
     async fn process_task_item(&self, task_item: String, _pool: Pool<Sqlite>) -> Result<Arc<ImageBrightness>, Box<dyn std::error::Error + Send>> {

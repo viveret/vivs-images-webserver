@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, io::ErrorKind};
 
 use crate::{api::web::get_file_from_exe_dir, models::image::Image};
 
@@ -41,6 +41,10 @@ impl SearchParamFieldList {
 
     pub fn to_html(&self) -> String {
         self.fields.iter().map(|field| field.to_html()).collect::<Vec<_>>().join("\n")
+    }
+    
+    fn default() -> SearchParamFieldList {
+        SearchParamFieldList { fields: vec![] }
     }
 }
 
@@ -120,7 +124,7 @@ impl SearchParamFieldOutput {
 
 #[derive(Debug, Deserialize)]
 pub struct SearchParams {
-    pub fields: Vec<SearchParamFieldOutput>,
+    pub fields: SearchParamFieldList,
 }
 
 // json list of SearchParamFieldMeta
@@ -135,7 +139,7 @@ impl SearchParams {
 
     pub fn default() -> Self {
         Self {
-            fields: vec![],
+            fields: SearchParamFieldList::default(),
         }
     }
 
@@ -163,35 +167,35 @@ impl SearchParams {
         self.get_field_value("offset").and_then(|v| v.parse::<i32>().ok())
     }
 
-    pub fn into_sql_query_params(&self) -> Vec<HashMap<String, String>> {
+    pub fn into_sql_query_params(&self) -> Vec<(String, HashMap<String, String>)> {
         let mut param_groups = vec![];
         
         // Handle query search across multiple fields
         if let Some(query) = &self.get_field_value("query") {
             let search_pattern = format!("%{}%", query);
             let mut param_group = HashMap::new();
-            for text_field in &self.fields {
+            for text_field in &self.fields.fields {
                 if text_field.field_meta.input_type == "text" {
                     if let Some(sql_field) = &text_field.field_meta.sql_field {
                         param_group.insert(format!("{} LIKE ?", sql_field), search_pattern.clone());
                     }
                 }
             }
-            param_groups.push(param_group);
+            param_groups.push(("OR".to_string(), param_group));
         }
 
         let mut params = HashMap::new();
-        for field in &self.fields {
+        for field in &self.fields.fields {
             field.add_sql_condition(&mut params);
         }
-        param_groups.push(params);
+        param_groups.push(("AND".to_string(), params));
         
         param_groups
     }
 
     pub fn into_html_params(&self) -> HashMap<String, String> {
         let mut params = HashMap::new();
-        for field in &self.fields {
+        for field in &self.fields.fields {
             if let Some(v_in) = field.field_input.value.as_ref() {
                 if let Some(v_default) = field.field_meta.default.as_ref() {
                     if v_in == v_default {
@@ -220,7 +224,7 @@ impl SearchParams {
     pub fn to_string(&self) -> String {
         let mut parts = Vec::new();
         
-        for field in &self.fields {
+        for field in &self.fields.fields {
             if !field.field_meta.is_for_display {
                 Self::format_field(&mut parts, &field.field_input.value, &field.field_meta.label);
             }
@@ -229,17 +233,27 @@ impl SearchParams {
         parts.join(", ")
     }
 
-    pub fn set_field_value(&mut self, name: &str, value: Option<String>) {
+    pub fn set_field_value(&mut self, name: &str, value: Option<String>) -> Result<(), std::io::Error> {
         let field_input = SearchParamFieldInput { name: name.to_string(), value };
-        let field_index = self.fields.iter().position(|x| x.field_meta.name == name);
+        let field_index = self.fields.fields.iter().position(|x| x.field_meta.name == name);
         if let Some(field_index) = field_index {
-            let x = self.fields.remove(field_index);
-            self.fields.push(SearchParamFieldOutput { field_meta: x.field_meta, field_input });
+            let x = self.fields.fields.remove(field_index);
+            self.fields.fields.push(SearchParamFieldOutput { field_meta: x.field_meta, field_input });
+            Ok(())
+        } else {
+            // get field in meta
+            for field in Self::get_meta() {
+                if field.name == name {
+                    self.fields.fields.push(SearchParamFieldOutput { field_meta: field, field_input });
+                    return Ok(())
+                }
+            }
+            Err(std::io::Error::new(ErrorKind::NotFound, name))
         }
     }
 
     fn get_field_value(&self, name: &str) -> Option<String> {
-        for field in &self.fields {
+        for field in &self.fields.fields {
             if let Some(v_in) = field.field_input.value.as_ref() {
                 if let Some(v_default) = field.field_meta.default.as_ref() {
                     if v_in == v_default {
@@ -262,7 +276,7 @@ impl SearchParams {
     }
 
     fn get_field_value_or_default(&self, name: &str) -> Option<String> {
-        for field in &self.fields {
+        for field in &self.fields.fields {
             if field.field_meta.name == name {
                 let mut v_in = field.field_input.value.as_ref();
                 if let Some(v) = v_in {
@@ -296,7 +310,7 @@ impl SearchParams {
                 value,
             };
             let field_output = field_input.to_output(field.clone());
-            search_params.fields.push(field_output);
+            search_params.fields.fields.push(field_output);
         }
         search_params
     }

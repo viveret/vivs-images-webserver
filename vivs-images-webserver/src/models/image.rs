@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::models::image_aspect_ratio::ImageAspectRatio;
 use crate::models::image_ocr_text::ImageOcrText;
 use crate::models::image_similarity::ImageSimilarity;
 use crate::models::image_exif::ImageExif;
@@ -24,6 +25,7 @@ pub struct Image {
     pub similarity: Option<ImageSimilarity>,
     pub thumbnail: Option<ImageThumbnail>,
     pub ocr_text: Option<ImageOcrText>,
+    pub aspect_ratio: Option<ImageAspectRatio>,
 }
 
 impl Image {
@@ -32,6 +34,7 @@ impl Image {
         let brightness = ImageBrightness::new(row);
         let similarity = ImageSimilarity::new(row);
         let ocr_text = ImageOcrText::new(row);
+        let aspect_ratio = ImageAspectRatio::new(row);
         let path = exif.image_path.clone();
         
         Image {
@@ -40,6 +43,7 @@ impl Image {
             brightness: Some(brightness),
             similarity: Some(similarity),
             ocr_text: Some(ocr_text),
+            aspect_ratio: Some(aspect_ratio),
             thumbnail: None,
         }
     }
@@ -49,6 +53,7 @@ impl Image {
         x.extend_from_slice(&ImageBrightness::get_meta());
         x.extend_from_slice(&ImageSimilarity::get_meta());
         x.extend_from_slice(&ImageOcrText::get_meta());
+        x.extend_from_slice(&ImageAspectRatio::get_meta());
         x
     }
 
@@ -66,6 +71,9 @@ impl Image {
             return Some(v);
         }
         if let Some(v) = self.ocr_text.as_ref().and_then(|s| s.get_field(field)) {
+            return Some(v);
+        }
+        if let Some(v) = self.aspect_ratio.as_ref().and_then(|s| s.get_field(field)) {
             return Some(v);
         }
         None

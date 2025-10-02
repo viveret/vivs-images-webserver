@@ -1,3 +1,4 @@
+pub mod query_image_aspect_ratio;
 pub mod query_image_similarity;
 pub mod query_image_exif;
 pub mod query_image_brightness;

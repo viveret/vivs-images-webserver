@@ -18,12 +18,12 @@ pub async fn get_image_path_comparison_brightness_table_analysis(pool: &SqlitePo
 
 pub async fn get_brightness_missing_in_sql_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
     let analysis = get_image_path_comparison_brightness_table_analysis(pool, None).await?;
-    let v = analysis.files_missing_from_a.len();
+    let v = analysis.files_missing_from_b.len();
     Ok((v, format!("There are {} images on disk without a known brightness", v)))
 }
 
 pub async fn get_brightness_missing_on_disk_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
     let analysis = get_image_path_comparison_brightness_table_analysis(pool, None).await?;
-    let v = analysis.files_missing_from_b.len();
+    let v = analysis.files_missing_from_a.len();
     Ok((v, format!("There are {} images in brightness table without a valid image on disk", v)))
 }

@@ -9,7 +9,7 @@ use crate::metrics::brightness_metrics::{get_brightness_missing_in_sql_count, ge
 
 
 
-pub struct ImagesOnDiskWithMissingBrightnessIndicator {}
+pub struct ImagesOnDiskWithMissingBrightnessIndicator;
 impl ImagesOnDiskWithMissingBrightnessIndicator {
     pub fn new() -> Self {
         Self {}
@@ -30,13 +30,9 @@ impl IActionIndicator for ImagesOnDiskWithMissingBrightnessIndicator {
         "If the brightness table is missing any images that are on the disk".to_string()
     }
 
-    fn get_action_name(&self) -> String {
-        "add_brightness".to_string()
-    }
+    fn get_action_name(&self) -> String { "add_brightness".to_string() }
 
-    fn get_cron_schedule(&self) -> String {
-        todo!()
-    }
+    fn get_cron_schedule(&self) -> String { todo!() }
 
     async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
         let (difference_total, msg) = get_brightness_missing_in_sql_count(pool).await?;
@@ -46,7 +42,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingBrightnessIndicator {
 
 
 
-pub struct ImagesInBrightnessSqlDbWithMissingImageOnDiskIndicator {}
+pub struct ImagesInBrightnessSqlDbWithMissingImageOnDiskIndicator;
 impl ImagesInBrightnessSqlDbWithMissingImageOnDiskIndicator {
     pub fn new() -> Self {
         Self {}
@@ -67,13 +63,9 @@ impl IActionIndicator for ImagesInBrightnessSqlDbWithMissingImageOnDiskIndicator
         "If the brightness table has values for images that are not found or valid on the disk".to_string()
     }
 
-    fn get_action_name(&self) -> String {
-        "delete_missing_brightness".to_string()
-    }
+    fn get_action_name(&self) -> String { "delete_missing_brightness".to_string() }
 
-    fn get_cron_schedule(&self) -> String {
-        todo!()
-    }
+    fn get_cron_schedule(&self) -> String { todo!() }
 
     async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
         let (difference_total, msg) = get_brightness_missing_on_disk_count(pool).await?;

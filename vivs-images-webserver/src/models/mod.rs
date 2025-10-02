@@ -1,5 +1,6 @@
 pub mod config;
 pub mod image;
+pub mod image_aspect_ratio;
 pub mod image_exif;
 pub mod image_similarity;
 pub mod image_brightness;

@@ -1,4 +1,5 @@
 pub mod convert_images_same_size_max;
+pub mod extract_image_aspect_ratio;
 pub mod extract_image_brightness;
 pub mod extract_image_taken_at;
 pub mod extract_image_exif;

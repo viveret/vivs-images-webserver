@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS image_brightness (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_image_path ON image_brightness(image_path);
-CREATE INDEX IF NOT EXISTS idx_brightness ON image_brightness(brightness);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_image_path ON image_brightness(image_path);
 
 "#;
