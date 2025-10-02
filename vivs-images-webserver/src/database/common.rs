@@ -7,7 +7,7 @@ pub const CATEGORIES: &[&str] = &[
     "camera_model", "camera_make", "lens_model", "iso_speed", "focal_length"
 ];
 
-pub const PRINTLN_DEBUG: bool = false;
+pub const PRINTLN_DEBUG: bool = true;
 
 // Helper function to execute SQL queries and handle errors
 pub async fn execute_query(pool: &SqlitePool, query: &str, params: Vec<&str>) -> Result<Vec<sqlx::sqlite::SqliteRow>, actix_web::Error> {

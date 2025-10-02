@@ -39,8 +39,8 @@ where
                     params.push(value);
                 }
             }
-            // Remove trailing " OR "
-            inner_sql = inner_sql[4..].to_string();
+            // Remove first " {field_op} "
+            inner_sql = inner_sql[2 + field_op.len()..].to_string();
             query_criteria_sql.push_str(&inner_sql);
             query_criteria_sql.push_str(")");
         }

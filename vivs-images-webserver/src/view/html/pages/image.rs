@@ -16,75 +16,85 @@ pub async fn view_image(
     pool: web::Data<SqlitePool>,
     params: web::Query<SimilarImagesParams>,
 ) -> Result<HttpResponse> {
-    let image = find_image_by_path(&pool, &params.image_path).await?;
-    if let Some(image) = image {
-        let thumbnails_html = generate_image_thumbnail_table_query_thumbnails_db(&params.image_path, &pool).await;
-        
-        let threshold = params.threshold.unwrap_or(1.0);
+    match find_image_by_path(&pool, &params.image_path).await {
+        Ok(Some(image)) => {
+            let thumbnails_html = generate_image_thumbnail_table_query_thumbnails_db(&params.image_path, &pool).await;
+            
+            let threshold = params.threshold.unwrap_or(1.0);
 
-        let rows = execute_query(pool.get_ref(),
-            r#"
-            SELECT 
-                CASE 
-                    WHEN isim.image_path_a = ? THEN isim.image_path_b 
-                    ELSE isim.image_path_a 
-                END as related_image_path,
-                isim.similarity_value,
-                ie.*
-            FROM image_similarity isim
-            LEFT JOIN image_exif ie ON 
-                (isim.image_path_a = ? AND ie.image_path = isim.image_path_b)
-                OR (isim.image_path_b = ? AND ie.image_path = isim.image_path_a)
-            WHERE 
-                (isim.image_path_a = ? OR isim.image_path_b = ?)
-                AND isim.similarity_value >= 0.5
-                AND isim.similarity_value <= ?
-            ORDER BY isim.similarity_value DESC
-            LIMIT 20
-            "#,
-            vec![
-                &params.image_path,  // 1st param for CASE
-                &params.image_path,  // 2nd param for JOIN
-                &params.image_path,  // 3rd param for JOIN  
-                &params.image_path,  // 4th param for WHERE
-                &params.image_path,  // 5th param for WHERE
-                &threshold.to_string()  // 6th param for similarity
-            ]
-        ).await?;
+            let similarity_table_html = match execute_query(pool.get_ref(),
+                r#"
+                SELECT 
+                    CASE 
+                        WHEN isim.image_path_a = ? THEN isim.image_path_b 
+                        ELSE isim.image_path_a 
+                    END as related_image_path,
+                    isim.similarity_value,
+                    ie.*
+                FROM image_similarity isim
+                LEFT JOIN image_exif ie ON 
+                    (isim.image_path_a = ? AND ie.image_path = isim.image_path_b)
+                    OR (isim.image_path_b = ? AND ie.image_path = isim.image_path_a)
+                WHERE 
+                    (isim.image_path_a = ? OR isim.image_path_b = ?)
+                    AND isim.similarity_value >= 0.5
+                    AND isim.similarity_value <= ?
+                ORDER BY isim.similarity_value DESC
+                LIMIT 20
+                "#,
+                vec![
+                    &params.image_path,  // 1st param for CASE
+                    &params.image_path,  // 2nd param for JOIN
+                    &params.image_path,  // 3rd param for JOIN  
+                    &params.image_path,  // 4th param for WHERE
+                    &params.image_path,  // 5th param for WHERE
+                    &threshold.to_string()  // 6th param for similarity
+                ]
+            ).await {
+                Ok(rows) => {
+                    let rows = rows.into_iter().map(|row| {
+                        crate::models::image::Image::new(&row)
+                    }).collect::<Vec<_>>();
+                    
+                    let columns = ["thumbnail", "similarity_value", "path", "camera_model", "lens_model", "exposure_time", "iso", "focal_length"];
+                    let columns = columns.map(String::from).to_vec();
+                    let rows_html = generate_image_table_rows(&rows, &columns);
+                    create_html_table(
+                        &format!("Images similar to {} (threshold: {})", params.image_path, threshold),
+                        &SearchParams::get_column_titles(&columns),
+                        &rows_html
+                    )
+                }
+                Err(e) => {
+                    format!("could not get similarity: {}", e)
+                }
+            };
 
-        let rows = rows.into_iter().map(|row| {
-            crate::models::image::Image::new(&row)
-        }).collect::<Vec<_>>();
-        
-        let columns = ["thumbnail", "similarity_value", "path", "camera_model", "lens_model", "exposure_time", "iso", "focal_length"];
-        let columns = columns.map(String::from).to_vec();
-        let rows_html = generate_image_table_rows(&rows, &columns);
-        let table_html = create_html_table(
-            &format!("Images similar to {} (threshold: {})", params.image_path, threshold),
-            &SearchParams::get_column_titles(&columns),
-            &rows_html
-        );
+            let ocr_text = image.ocr_text.map(|x| x.ocr_text).unwrap_or_default();
+            let ocr_text = htmlentity::entity::encode(
+                ocr_text.as_bytes(),
+                &htmlentity::entity::EncodeType::NamedOrHex,
+                &htmlentity::entity::CharacterSet::HtmlAndNonASCII,
+            ).to_string().unwrap_or_default();
+            let ocr_text = format!("<h4>ocr text:</h4><p><textarea>{}</textarea></p><p>{}</p>", ocr_text, ocr_text);
+            let aspect_ratio_html = format!("<p>aspect ratio: {}</p>", image.aspect_ratio.map(|x| x.to_string()).unwrap_or_default());
 
-        let ocr_text = image.ocr_text.map(|x| x.ocr_text).unwrap_or_default();
-        let ocr_text = htmlentity::entity::encode(
-            ocr_text.as_bytes(),
-            &htmlentity::entity::EncodeType::NamedOrHex,
-            &htmlentity::entity::CharacterSet::HtmlAndNonASCII,
-        ).to_string().unwrap_or_default();
-        let ocr_text = format!("<h4>ocr text:</h4><p><textarea>{}</textarea></p><p>{}</p>", ocr_text, ocr_text);
-        let aspect_ratio_html = format!("<p>aspect ratio: {}</p>", image.aspect_ratio.map(|x| x.to_string()).unwrap_or_default());
+            let body_html = format!("{}{}{}<h4>other properties:</h4>{}{}", 
+                image_html(&params.image_path, Some(200)),
+                ocr_text,
+                thumbnails_html,
+                aspect_ratio_html,
+                similarity_table_html
+            );
 
-        let body_html = format!("{}{}{}<h4>other properties:</h4>{}{}", 
-            image_html(&params.image_path, Some(200)),
-            ocr_text,
-            thumbnails_html,
-            aspect_ratio_html,
-            table_html
-        );
-
-        let html = layout_view(Some("Image Details"), &body_html);
-        Ok(HttpResponse::Ok().content_type("text/html").body(html))
-    } else {
-        Ok(HttpResponse::NotFound().body(format!("Image {} not found", params.image_path)))
+            let html = layout_view(Some("Image Details"), &body_html);
+            Ok(HttpResponse::Ok().content_type("text/html").body(html))
+        }
+        Ok(None) => {
+            Ok(HttpResponse::NotFound().body(format!("Image {} not found", params.image_path)))
+        }
+        Err(e) => {
+            Ok(HttpResponse::NotFound().body(format!("Image {} not found ({})", params.image_path, e)))
+        }
     }
 }
