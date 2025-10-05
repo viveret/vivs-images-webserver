@@ -30,6 +30,11 @@ pub fn generate_image_table_rows(rows: &[Image], columns: &[String]) -> String {
                         format!(r#"<td>{}</td>"#, link_html(view_image_href.clone(), &image_html(&image.path, Some(200))))                        
                     }
                 },
+                "name" => {
+                    let name = std::path::PathBuf::from(&image.path);
+                    let name = name.file_name().unwrap_or_default().to_str().unwrap();
+                    format!(r#"<td>{}</td>"#, link_html(view_image_href.clone(), &name))
+                },
                 "path" => format!(r#"<td>{}</td>"#, link_html(view_image_href.clone(), &image.path)),
                 _ => format!(r#"<td>{}</td>"#, v.unwrap_or_default()),
             }

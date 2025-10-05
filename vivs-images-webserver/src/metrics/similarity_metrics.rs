@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use sqlx::SqlitePool;
 
 use crate::actions::analysis_task_item_processor::LogProgListenerPair;
@@ -6,7 +8,7 @@ use crate::database::query::query_image_similarity::{get_image_path_pairs_from_d
 use crate::filesystem::query::images::get_images_in_photo_sync_path;
 
 
-pub async fn get_image_paths_simple_difference_similarity_analysis(pool: &SqlitePool) -> actix_web::Result<FilePathComparisonModel> {
+pub async fn get_image_paths_simple_difference_similarity_analysis(pool: &SqlitePool) -> Result<FilePathComparisonModel, Box<dyn Error + Send>> {
     let image_paths_on_disk = get_images_in_photo_sync_path()?;
     let image_paths_in_sql = get_image_paths_from_db(pool).await?;
     Ok(FilePathComparisonModel::new(
@@ -15,13 +17,13 @@ pub async fn get_image_paths_simple_difference_similarity_analysis(pool: &Sqlite
     )
 }
 
-pub async fn get_simple_similarity_missing_in_sql_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
+pub async fn get_simple_similarity_missing_in_sql_count(pool: &SqlitePool) -> Result<(usize, String), Box<dyn Error + Send>> {
     let analysis = get_image_paths_simple_difference_similarity_analysis(pool).await?;
     let v = analysis.files_missing_from_a.len();
     Ok((v, format!("There are {} images on disk without a known similarity", v)))
 }
 
-pub async fn get_simple_similarity_missing_on_disk_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
+pub async fn get_simple_similarity_missing_on_disk_count(pool: &SqlitePool) -> Result<(usize, String), Box<dyn Error + Send>> {
     let analysis = get_image_paths_simple_difference_similarity_analysis(pool).await?;
     let v = analysis.files_missing_from_b.len();
     Ok((v, format!("There are {} images in SQL without a valid image on disk", v)))
@@ -32,7 +34,7 @@ pub async fn get_simple_similarity_missing_on_disk_count(pool: &SqlitePool) -> a
 
 pub async fn get_image_paths_full_difference_similarity_analysis(
     pool: &SqlitePool, log_prog_listener: Option<LogProgListenerPair>
-) -> actix_web::Result<CrossFilePathComparisonModel> {
+) -> Result<CrossFilePathComparisonModel, Box<dyn Error + Send>> {
     if let Some(x) = &log_prog_listener {
         x.1("getting image paths in photo sync path");
         x.0(0.3);
@@ -51,13 +53,13 @@ pub async fn get_image_paths_full_difference_similarity_analysis(
     ))
 }
 
-pub async fn get_full_similarity_missing_in_sql_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
+pub async fn get_full_similarity_missing_in_sql_count(pool: &SqlitePool) -> Result<(usize, String), Box<dyn Error + Send>> {
     let analysis = get_image_paths_full_difference_similarity_analysis(pool, None).await?;
     let v = analysis.pairs_missing_from_a.len();
     Ok((v, format!("There are {} image pairs on disk without a known similarity", v)))
 }
 
-pub async fn get_full_similarity_missing_on_disk_count(pool: &SqlitePool) -> actix_web::Result<(usize, String)> {
+pub async fn get_full_similarity_missing_on_disk_count(pool: &SqlitePool) -> Result<(usize, String), Box<dyn Error + Send>> {
     let analysis = get_image_paths_full_difference_similarity_analysis(pool, None).await?;
     let v = analysis.pairs_missing_from_b.len();
     Ok((v, format!("There are {} image pairs in SQL without a valid image on disk", v)))

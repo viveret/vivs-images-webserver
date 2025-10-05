@@ -8,10 +8,10 @@ use std::time::Duration;
 use convert_case::Case;
 use convert_case::Casing;
 use nameof::name_of_type;
-use sqlx::{Pool, Sqlite};
 use async_trait::async_trait;
 use crossbeam_channel::{bounded, Sender, Receiver};
 
+use crate::core::data_context::WebServerActionDataContext;
 use crate::actions::channels::TaskToWorkerSender;
 use crate::actions::channels::TaskToWorkerMessage;
 use crate::actions::channels::task_to_worker_send_helper;
@@ -32,11 +32,11 @@ where
     TTaskOutput: Send + Sync + std::fmt::Display,
     TAnalysis: Send + Sync + std::fmt::Display,
 {
-    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TAnalysis, Box<dyn std::error::Error + Send>>;
-    async fn get_task_items_from_analysis(&self, pool: Pool<Sqlite>, analysis: TAnalysis, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TTaskItemList, Box<dyn std::error::Error + Send>>;
-    async fn process_task_item(&self, task_item: TTaskItem, pool: Pool<Sqlite>) -> actix_web::Result<TTaskOutput, Box<dyn std::error::Error + Send>>;
-    async fn process_task_output(&self, task_output: TTaskOutput, pool: Pool<Sqlite>) -> actix_web::Result<(), Box<dyn std::error::Error + Send>>;
-    async fn task_already_completed(&self, task_input: &TTaskItem, pool: Pool<Sqlite>) -> actix_web::Result<bool, Box<dyn std::error::Error + Send>>;
+    async fn get_analysis(&self, pool: WebServerActionDataContext, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TAnalysis, Box<dyn std::error::Error + Send>>;
+    async fn get_task_items_from_analysis(&self, pool: WebServerActionDataContext, analysis: TAnalysis, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TTaskItemList, Box<dyn std::error::Error + Send>>;
+    async fn process_task_item(&self, task_item: TTaskItem, dry_run: bool, pool: WebServerActionDataContext) -> actix_web::Result<TTaskOutput, Box<dyn std::error::Error + Send>>;
+    async fn process_task_output(&self, task_output: TTaskOutput, pool: WebServerActionDataContext) -> actix_web::Result<(), Box<dyn std::error::Error + Send>>;
+    async fn task_already_completed(&self, task_input: &TTaskItem, pool: WebServerActionDataContext) -> actix_web::Result<bool, Box<dyn std::error::Error + Send>>;
     fn get_description(&self) -> String;
     fn get_item_name(&self) -> String;
     fn get_process_action_name(&self) -> String;
@@ -59,8 +59,8 @@ enum ThreadMessage<TTaskItem> {
 }
 
 struct ThreadResult {
-    index: usize,
-    success: bool,
+    _index: usize,
+    _success: bool,
     error_message: Option<String>,
 }
 
@@ -79,14 +79,14 @@ where
 
     pub async fn process_task_item(
         processor: Arc<dyn AnalysisTaskItemProcessor<TAnalysis, TTaskItem, TTaskItemList, TTaskOutput>>,
-        pool: Pool<Sqlite>,
+        pool: WebServerActionDataContext,
         send: TaskToWorkerSender,
         dry_run: bool,
         task_id: u32,
         task_input: TTaskItem,
     ) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         let task_item_str = format!("{}", task_input);
-        match processor.process_task_item(task_input, pool.clone()).await {
+        match processor.process_task_item(task_input, dry_run, pool.clone()).await {
             Ok(task_output) => {
                 if dry_run {
                     Self::send_log_info(&send, task_id, 
@@ -115,7 +115,7 @@ where
     // Process all missing similarity tasks with progress tracking
     pub async fn process_tasks_linear(
         &self,
-        pool: Pool<Sqlite>,
+        pool: WebServerActionDataContext,
         send: &TaskToWorkerSender,
         dry_run: bool,
         task_id: u32,
@@ -143,7 +143,7 @@ where
 
     fn create_parallel_task_processing_thread(
         processor: Arc<dyn AnalysisTaskItemProcessor<TAnalysis, TTaskItem, TTaskItemList, TTaskOutput>>,
-        pool: Pool<Sqlite>,
+        pool: WebServerActionDataContext,
         task_receiver: Receiver<ThreadMessage<TTaskItem>>,
         result_sender: Sender<ThreadResult>,
         dry_run: bool,
@@ -165,15 +165,15 @@ where
                         match result {
                             Ok(()) => {
                                 let _ = result_sender.send(ThreadResult {
-                                    index,
-                                    success: true,
+                                    _index: index,
+                                    _success: true,
                                     error_message: None,
                                 });
                             },
                             Err(e) => {
                                 let _ = result_sender.send(ThreadResult {
-                                    index,
-                                    success: false,
+                                    _index: index,
+                                    _success: false,
                                     error_message: Some(format!("{}", e)),
                                 });
                             },
@@ -190,7 +190,7 @@ where
     // Process tasks in parallel with true multi-threading
     pub async fn process_tasks_parallel(
         &self,
-        pool: Pool<Sqlite>,
+        pool: WebServerActionDataContext,
         send: &TaskToWorkerSender,
         dry_run: bool,
         task_id: u32,
@@ -213,7 +213,7 @@ where
         
         Self::send_log_info(&send, task_id, format!("Creating {} task threads", orch_options.max_concurrent))?;
         let mut worker_handles: Vec<thread::JoinHandle<()>> = Vec::new();
-        for (i, task_receiver) in task_receivers.into_iter().enumerate() {
+        for task_receiver in task_receivers.into_iter() {
             let handle = Self::create_parallel_task_processing_thread(
                 self.processor.clone(),
                 pool.clone(),
@@ -339,14 +339,14 @@ where
 
     async fn get_task_items_from_analysis(
         &self, 
-        pool: Pool<Sqlite>, 
+        pool: WebServerActionDataContext, 
         analysis: TAnalysis,
         log_prog_listener: Option<LogProgListenerPair>,
     ) -> actix_web::Result<TTaskItemList, Box<dyn std::error::Error + Send>> {
         self.processor.get_task_items_from_analysis(pool, analysis, log_prog_listener).await
     }
 
-    async fn run_task_parallel_option(&self, pool: Pool<Sqlite>, send: TaskToWorkerSender, dry_run: bool, task_id: u32, orch_options: TaskOrchestrationOptions) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+    async fn run_task_parallel_option(&self, pool: WebServerActionDataContext, send: TaskToWorkerSender, dry_run: bool, task_id: u32, orch_options: TaskOrchestrationOptions) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         let send2 = send.clone();
         let progress_listener: Arc<dyn Fn(f32) + Send + Sync + 'static> = Arc::new(move |progress| {
             let _ = Self::send_progress_update(&send2, task_id, progress);
@@ -413,7 +413,7 @@ where
     fn get_can_dry_run(&self) -> bool { true }
     
     async fn run_task(&self,
-        pool: Pool<Sqlite>,
+        pool: WebServerActionDataContext,
         send: TaskToWorkerSender,
         dry_run: bool,
         task_id: u32,

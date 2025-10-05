@@ -7,20 +7,20 @@ pub fn extract_image_taken_at(image_path: &str) -> actix_web::Result<Option<Stri
 
     // try exif first
     taken_at = extract_image_date_from_exif(image_path)?;
-    println!("extract_image_taken_at exif_string = {:?}", taken_at);
+    // println!("extract_image_taken_at exif_string = {:?}", taken_at);
     if taken_at.is_some() {
         return Ok(taken_at)
     }
 
     // try the file name
     taken_at = extract_image_date_from_file_name(image_path);
-    println!("extract_image_taken_at file_name = {:?}", taken_at);    
+    // println!("extract_image_taken_at file_name = {:?}", taken_at);    
     if taken_at.is_some() {
         return Ok(taken_at)
     }
 
     // final attempt is to get file creation time
-    println!("extract_image_taken_at file_creation_time = {:?}", taken_at);    
+    // println!("extract_image_taken_at file_creation_time = {:?}", taken_at);    
 
     Ok(taken_at)
 }

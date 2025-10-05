@@ -1,0 +1,75 @@
+use std::error::Error;
+
+use async_trait::async_trait;
+use convert_case::{Case, Casing};
+use nameof::name_of_type;
+use sqlx::SqlitePool;
+
+use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
+use crate::metrics::image_paths_metrics::{get_image_paths_missing_in_sql_count, get_image_paths_missing_on_disk_count};
+
+
+
+pub struct ImagesOnDiskWithMissingImagePathsIndicator;
+impl ImagesOnDiskWithMissingImagePathsIndicator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[async_trait]
+impl IActionIndicator for ImagesOnDiskWithMissingImagePathsIndicator {
+    fn get_name(&self) -> String {
+        name_of_type!(ImagesOnDiskWithMissingImagePathsIndicator).to_case(Case::Snake)
+    }
+
+    fn get_label(&self) -> String {
+        name_of_type!(ImagesOnDiskWithMissingImagePathsIndicator).to_case(Case::Sentence)
+    }
+
+    fn get_description(&self) -> String {
+        "If the image_paths table is missing any images that are on the disk".to_string()
+    }
+
+    fn get_action_name(&self) -> String { "add_image_paths".to_string() }
+
+    fn get_cron_schedule(&self) -> String { todo!() }
+
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
+        let (difference_total, msg) = get_image_paths_missing_in_sql_count(pool).await?;
+        Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
+    }
+}
+
+
+
+pub struct ImagesInImagePathsSqlDbWithMissingImageOnDiskIndicator;
+impl ImagesInImagePathsSqlDbWithMissingImageOnDiskIndicator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[async_trait]
+impl IActionIndicator for ImagesInImagePathsSqlDbWithMissingImageOnDiskIndicator {
+    fn get_name(&self) -> String {
+        name_of_type!(ImagesInImagePathsSqlDbWithMissingImageOnDiskIndicator).to_case(Case::Snake)
+    }
+
+    fn get_label(&self) -> String {
+        name_of_type!(ImagesInImagePathsSqlDbWithMissingImageOnDiskIndicator).to_case(Case::Sentence)
+    }
+
+    fn get_description(&self) -> String {
+        "If the image_paths table has values for images that are not found or valid on the disk".to_string()
+    }
+
+    fn get_action_name(&self) -> String { "delete_missing_image_paths".to_string() }
+
+    fn get_cron_schedule(&self) -> String { todo!() }
+
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
+        let (difference_total, msg) = get_image_paths_missing_on_disk_count(pool).await?;
+        Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
+    }
+}

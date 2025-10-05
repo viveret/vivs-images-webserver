@@ -13,8 +13,8 @@ pub struct ImageOcrText {
 
 pub const IMAGE_OCR_TEXT_COLUMNS_JSON: &str = r#"
 [
-    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general"},
-    {"name": "ocr_text", "label": "OCR Text", "description": "The text extracted from the image", "field_type": "string", "example": "meow", "category": "general"}
+    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general", "table_name": "image_ocr_text"},
+    {"name": "ocr_text", "label": "OCR Text", "description": "The text extracted from the image", "field_type": "string", "example": "meow", "category": "general", "table_name": "image_ocr_text"}
 ]"#;
 
 pub fn multi_try_get(row: &sqlx::sqlite::SqliteRow, fields: &[&str]) -> Option<String> {

@@ -7,13 +7,11 @@ use std::process::Command;
 use image::imageops::FilterType;
 use image::DynamicImage;
 use image::GenericImageView;
-use sqlx::Pool;
-use sqlx::Sqlite;
 use tempfile::NamedTempFile;
 
 use crate::converters::convert_images_same_size_max::resize_to_common_dimensions;
 use crate::converters::string_to_hashcode::string_hashcode_java_style;
-use crate::database::query::query_image_thumbnail::query_thumbnail_table_at_most_width_length;
+use crate::core::data_context::WebServerActionDataContext;
 use crate::models::image_similarity::ImageComparisonAlgorithm;
 use crate::models::image_similarity::ImageSimilarity;
 
@@ -56,7 +54,7 @@ impl std::fmt::Display for ComputeImageSimilarityOptions {
     }
 }
 
-pub async fn extract_image_similarity(options: &ComputeImageSimilarityOptions, pool: &Pool<Sqlite>) -> Result<ImageSimilarity> {
+pub async fn extract_image_similarity(options: &ComputeImageSimilarityOptions, pool: WebServerActionDataContext) -> Result<ImageSimilarity> {
     let (similarity_value, similarity_confidence) = match options.algo {
         ImageComparisonAlgorithm::Magick => extract_image_similarity_using_magick(options)?,
         ImageComparisonAlgorithm::CustomV1 => extract_image_similarity_using_custom_v1(options)?,
@@ -72,21 +70,21 @@ pub async fn extract_image_similarity(options: &ComputeImageSimilarityOptions, p
     })
 }
 
-async fn extract_image_similarity_using_custom_v2_thumbnails(options: &ComputeImageSimilarityOptions, pool: &Pool<Sqlite>) -> Result<(f32, f32)> {
-    let img_a = query_thumbnail_table_at_most_width_length(
+async fn extract_image_similarity_using_custom_v2_thumbnails(options: &ComputeImageSimilarityOptions, pool: WebServerActionDataContext) -> Result<(f32, f32)> {
+    let img_a = pool.get_thumbnail_at_most_width_length(
         &options.image_path_a, 
         options.max_dimension.unwrap_or(32),
-        pool).await
+        ).await
         .map_err(|e| Error::new(ErrorKind::InvalidData, format!("{}", e)))?;
 
     if img_a.is_none() {
         return Err(Error::new(ErrorKind::InvalidData, format!("img_a not found")));
     }
 
-    let img_b = query_thumbnail_table_at_most_width_length(
+    let img_b = pool.get_thumbnail_at_most_width_length(
         &options.image_path_b, 
         options.max_dimension.unwrap_or(32),
-        pool).await
+        ).await
         .map_err(|e| Error::new(ErrorKind::InvalidData, format!("{}", e)))?;
 
     if img_b.is_none() {

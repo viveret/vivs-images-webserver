@@ -1,8 +1,9 @@
+use std::error::Error;
+
 use async_trait::async_trait;
 use convert_case::{Case, Casing};
 use nameof::name_of_type;
 use sqlx::SqlitePool;
-use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
 use crate::database::query::query_image_similarity::{get_count_of_comparisons_per_image_path, get_count_of_image_paths_from_db};
@@ -39,7 +40,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingSimilarityIndicator {
         todo!()
     }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let (difference_total, msg) = get_simple_similarity_missing_in_sql_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }
@@ -75,7 +76,7 @@ impl IActionIndicator for ImagesInSqlDbWithLessThanExpectedSimilarityIndicator {
         todo!()
     }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let all = get_count_of_comparisons_per_image_path(pool).await?;
         let expected_total_for_each = get_count_of_image_paths_from_db(pool).await?;
         let difference_total = all.iter().filter(|x| *x.1 != expected_total_for_each).count();
@@ -115,7 +116,7 @@ impl IActionIndicator for ImagesInSimilaritySqlDbWithMissingImageOnDiskIndicator
         todo!()
     }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let (difference_total, msg) = get_simple_similarity_missing_on_disk_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }

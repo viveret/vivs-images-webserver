@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use sqlx::SqlitePool;
-use sqlx::{Pool, Sqlite};
 
+use crate::core::data_context::WebServerActionDataContext;
 use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 use crate::calc::file_paths_comparison::FilePathComparisonModel;
 use crate::database::query::query_image_ocr_text::query_ocr_text_from_db;
@@ -65,17 +65,17 @@ pub fn change_ocr_text_to_image_base_path(ocr_text_path: &String) -> Result<Opti
 
 #[async_trait]
 impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, ImageOcrText, Vec<ImageOcrText>, Arc<String>> for ExportOcrTextProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
-        get_ocr_text_file_path_comparison_ocr_text_table_analysis(&pool, log_prog_listener).await
+    async fn get_analysis(&self, pool: WebServerActionDataContext, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+        get_ocr_text_file_path_comparison_ocr_text_table_analysis(&pool.pool, log_prog_listener).await
             .map(|v| Arc::new(v))
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn get_task_items_from_analysis(&self, pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>, _log_prog_listener: Option<LogProgListenerPair>) -> Result<Vec<ImageOcrText>, Box<dyn std::error::Error + Send>> {
+    async fn get_task_items_from_analysis(&self, pool: WebServerActionDataContext, analysis: Arc<FilePathComparisonModel>, _log_prog_listener: Option<LogProgListenerPair>) -> Result<Vec<ImageOcrText>, Box<dyn std::error::Error + Send>> {
         let mut items = vec![];
         for path in analysis.files_missing_from_b.iter() {
             if let Some(path) = change_ocr_text_to_image_base_path(path)? {
-                let item = query_ocr_text_from_db(&path, &pool).await
+                let item = query_ocr_text_from_db(&path, &pool.pool).await
                     .map_err(|e| Box::new(std::io::Error::other(format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
                 if let Some(item) = item {
                     items.push(item);
@@ -85,26 +85,28 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, ImageOcrText, Vec<I
         Ok(items)
     }
 
-    async fn process_task_item(&self, task_item: ImageOcrText, _pool: Pool<Sqlite>) -> Result<Arc<String>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: ImageOcrText, dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<String>, Box<dyn std::error::Error + Send>> {
         if !task_item.ocr_text.is_empty() {
             if let Some(export_to_path) = change_image_to_ocr_text_base_path(&task_item.image_path)? {
-                let parent_dir = std::path::Path::new(&export_to_path).parent().unwrap();
-                if !parent_dir.exists() {
-                    std::fs::create_dir_all(parent_dir)
+                if !dry_run {
+                    let parent_dir = std::path::Path::new(&export_to_path).parent().unwrap();
+                    if !parent_dir.exists() {
+                        std::fs::create_dir_all(parent_dir)
+                            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send>)?;
+                    }
+                    std::fs::write(export_to_path, task_item.ocr_text)
                         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send>)?;
                 }
-                std::fs::write(export_to_path, task_item.ocr_text)
-                    .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send>)?;
             }
         }
         Ok(Arc::new(String::default()))
     }
 
-    async fn process_task_output(&self, _task_output: Arc<String>, _pool: SqlitePool) -> Result<(), Box<dyn std::error::Error + Send>> {
+    async fn process_task_output(&self, _task_output: Arc<String>, _pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {
         Ok(())
     }
 
-    async fn task_already_completed(&self, task_input: &ImageOcrText, _pool: Pool<Sqlite>) -> Result<bool, Box<dyn std::error::Error + Send>> {
+    async fn task_already_completed(&self, task_input: &ImageOcrText, _pool: WebServerActionDataContext) -> Result<bool, Box<dyn std::error::Error + Send>> {
         if task_input.ocr_text.is_empty() {
             return Ok(true);
         }

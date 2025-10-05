@@ -1,11 +1,11 @@
 use crossbeam_channel::{select, Receiver};
-use sqlx::{Pool, Sqlite};
 use tokio::runtime::Runtime;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crate::actions::action_registry::{ActionRegistry, IWebServerAction};
+use crate::actions::action_registry::IWebServerAction;
+use crate::actions::action_registry::ActionRegistry;
 use crate::actions::channels::{task_to_worker_send_helper, worker_to_main_send_helper, WorkerToMainSender};
 use crate::actions::channels::WorkerToMainReceiver;
 use crate::actions::channels::WorkerToMainMessage;
@@ -18,10 +18,11 @@ use crate::actions::channels::MainToWorkerSender;
 use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::task_manager::{TaskManager, WebServerActionTask};
 use crate::actions::{task_manager, thread_pool};
+use crate::core::data_context::WebServerActionDataContext;
 
 #[derive(Clone)]
 pub struct WorkerThread {
-    pool: Pool<Sqlite>,
+    pool: WebServerActionDataContext,
     tx_to_main: WorkerToMainSender,
     tx_to_worker: MainToWorkerSender,
     thread_pool: Arc<thread_pool::ThreadPool>,
@@ -31,7 +32,7 @@ pub struct WorkerThread {
 }
 
 impl WorkerThread {
-    pub fn new(pool: Pool<Sqlite>, tx_to_main: WorkerToMainSender, tx_to_worker: MainToWorkerSender) -> Self {
+    pub fn new(pool: WebServerActionDataContext, tx_to_main: WorkerToMainSender, tx_to_worker: MainToWorkerSender) -> Self {
         let thread_pool = Arc::new(thread_pool::ThreadPool::new(8)); // 8 worker threads
         let task_manager = task_manager::TaskManager::new();
         let action_registry = ActionRegistry::new();
@@ -47,7 +48,7 @@ impl WorkerThread {
         }
     }
 
-    pub fn spawn(pool: Pool<Sqlite>) -> Arc<Self> {
+    pub fn spawn(pool: WebServerActionDataContext) -> Arc<Self> {
         let (tx_to_main, rx_from_worker) = crossbeam_channel::unbounded();
         let (tx_to_worker, rx_from_main) = crossbeam_channel::unbounded();
 
@@ -210,7 +211,7 @@ impl WorkerThread {
         dry_run: bool,
         orch_options: TaskOrchestrationOptions,
         action: Arc<dyn IWebServerAction>,
-        pool: Pool<Sqlite>,
+        pool: WebServerActionDataContext,
         tx_to_worker: &TaskToWorkerSender,
         task_manager: &task_manager::TaskManager
     ) -> actix_web::Result<()> {

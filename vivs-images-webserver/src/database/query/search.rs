@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::error::Error;
 
 use sqlx::{Row, SqlitePool};
 
-use crate::database::query::query_image_thumbnail::query_thumbnail_table_at_most_width_length;
+use crate::core::data_context::WebServerActionDataContext;
 use crate::models::image::Image;
 use crate::database::common::execute_query;
 use crate::models::query_params::search_params::SearchParams;
@@ -16,7 +17,7 @@ pub async fn execute_custom_image_query<F, T>(
     offset: Option<i32>,
     select_clause: &str,
     row_handler: F,
-) -> Result<Vec<T>, actix_web::Error>
+) -> Result<Vec<T>, Box<dyn Error + Send>>
 where
     F: Fn(sqlx::sqlite::SqliteRow) -> T,
 {
@@ -24,9 +25,11 @@ where
     let mut params: Vec<&str> = Vec::new();
     
     // join on other tables as needed
-    query.push_str(" LEFT JOIN image_brightness ON image_exif.image_path = image_brightness.image_path");
-    query.push_str(" LEFT JOIN image_ocr_text ON image_exif.image_path = image_ocr_text.image_path");
-    query.push_str(" LEFT JOIN image_aspect_ratio ON image_exif.image_path = image_aspect_ratio.image_path");
+    query.push_str(" LEFT JOIN image_exif ON image_paths.image_path = image_exif.image_path");
+    query.push_str(" LEFT JOIN image_brightness ON image_paths.image_path = image_brightness.image_path");
+    query.push_str(" LEFT JOIN image_ocr_text ON image_paths.image_path = image_ocr_text.image_path");
+    query.push_str(" LEFT JOIN image_aspect_ratio ON image_paths.image_path = image_aspect_ratio.image_path");
+    query.push_str(" LEFT JOIN image_iptc ON image_paths.image_path = image_iptc.image_path");
 
     let mut query_criteria_sql = String::new();
     for (i, (field_op, field_group)) in criteria.iter().enumerate() {
@@ -77,17 +80,14 @@ pub async fn query_sql_db_images_by_criteria(
     order_by: Option<&str>,
     limit: Option<i32>,
     offset: Option<i32>,
-) -> Result<Vec<sqlx::sqlite::SqliteRow>, actix_web::Error> {
-    let select_clause = r#"
-    SELECT image_exif.*,
-    image_brightness.brightness,
-    image_ocr_text.ocr_text,
-    image_aspect_ratio.width_pixels,
-    image_aspect_ratio.height_pixels,
-    image_aspect_ratio.aspect_ratio,
-    image_aspect_ratio.quality
-    FROM image_exif
-    "#;
+) -> Result<Vec<sqlx::sqlite::SqliteRow>, Box<dyn Error + Send>> {
+    let select_columns: Vec<String> = Image::get_meta()
+        .iter().filter(|c| c.name != "image_path").map(|c| format!("[{}].[{}]", c.table_name, c.name)).collect();
+    let select_columns_sql = select_columns.join(", ");
+    let select_clause = format!(r#"
+    SELECT image_paths.image_path, {}
+    FROM image_paths
+    "#, select_columns_sql);
     
     execute_custom_image_query(
         pool, 
@@ -95,7 +95,7 @@ pub async fn query_sql_db_images_by_criteria(
         order_by, 
         limit, 
         offset, 
-        select_clause, 
+        &select_clause, 
         |row| row
     ).await
 }
@@ -104,8 +104,8 @@ pub async fn query_sql_db_images_by_criteria(
 pub async fn count_sql_db_images_by_criteria(
     pool: &SqlitePool,
     criteria: &Vec<(String, HashMap<String, String>)>,
-) -> Result<i64, actix_web::Error> {
-    let select_clause = "SELECT COUNT(*) as count FROM image_exif";
+) -> Result<i64, Box<dyn Error + Send>> {
+    let select_clause = "SELECT COUNT(*) as count FROM image_paths";
     
     let results = execute_custom_image_query(
         pool, 
@@ -126,19 +126,19 @@ pub async fn count_sql_db_images_by_criteria(
 }
 
 pub async fn execute_search_images_query_with_criteria(
-    pool: &SqlitePool,
+    pool: WebServerActionDataContext,
     criteria: &Vec<(String, HashMap<String, String>)>,
     order_by: Option<&str>,
     limit: Option<i32>,
     offset: Option<i32>,
-) -> Result<Vec<Image>, actix_web::Error> {
-    let results = query_sql_db_images_by_criteria(pool, criteria, order_by, limit, offset).await?;
+) -> Result<Vec<Image>, Box<dyn Error + Send>> {
+    let results = query_sql_db_images_by_criteria(&pool.pool, criteria, order_by, limit, offset).await?;
     let mut results: Vec<Image> = results.into_iter()
             .map(|r| Image::new(&r))
             .collect();
 
     for img in results.iter_mut() {
-        if let Some(thumb) = query_thumbnail_table_at_most_width_length(&img.path, 64, pool).await? {
+        if let Some(thumb) = pool.get_thumbnail_at_most_width_length(&img.path, 64).await? {
             img.assign_thumbnail(thumb);
         }
     }
@@ -146,19 +146,17 @@ pub async fn execute_search_images_query_with_criteria(
 }
 
 pub async fn search_images_by_criteria(
-    pool: &SqlitePool,
+    pool: WebServerActionDataContext,
     params: &SearchParams,
     order_by: Option<&str>,
-) -> Result<SearchImagesPageModel, actix_web::Error> {
+) -> Result<SearchImagesPageModel, Box<dyn Error + Send>> {
     let criteria = params.into_sql_query_params();
     
-    // Use the new count function instead of fetching all data
-    let total_count = count_sql_db_images_by_criteria(pool, &criteria).await? as usize;
+    let total_count = count_sql_db_images_by_criteria(&pool.pool, &criteria).await? as usize;
     
     let items = execute_search_images_query_with_criteria(pool, &criteria, order_by, params.get_limit(), params.get_offset())
         .await?;
     
-    println!("returning {} of {} search results (asked for {:?})", items.len(), total_count, params.get_limit());
     Ok(SearchImagesPageModel { total_count, items })
 }
 
@@ -167,9 +165,9 @@ pub struct SearchImagesPageModel {
     pub items: Vec<Image>,
 }
 
-pub async fn find_image_by_path(pool: &SqlitePool, path: &str) -> Result<Option<Image>, actix_web::Error> {
+pub async fn find_image_by_path(pool: WebServerActionDataContext, path: &str) -> Result<Option<Image>, Box<dyn Error + Send>> {
     let mut params = HashMap::new();
-    params.insert("image_exif.image_path = ?".to_string(), path.to_string());
+    params.insert("image_paths.image_path = ?".to_string(), path.to_string());
     let criteria = vec![ ("".to_string(), params) ];
     let results = execute_search_images_query_with_criteria(pool, &criteria, None, Some(1), None).await?;
     if let Some(item) = results.first() {

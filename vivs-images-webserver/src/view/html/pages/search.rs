@@ -2,6 +2,7 @@ use actix_web::http::header::LOCATION;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use sqlx::SqlitePool;
 
+use crate::core::data_context::WebServerActionDataContext;
 use crate::models::query_params::default_search_params::get_image_wallpaper_based_on_brightness_search_params;
 use crate::view::html::model_views::image::generate_image_table_rows;
 use crate::view::html::layout::layout_view;
@@ -13,21 +14,22 @@ use crate::view::html::model_views::search_params_simple::search_images_simple_f
 
 
 pub async fn search_images(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<WebServerActionDataContext>,
     req: HttpRequest
 ) -> Result<HttpResponse> {
     let params = SearchParams::new_from_querystring(req.query_string());
     let search_form = if params.get_use_simple_view().unwrap_or_default() {
-        search_images_simple_form(pool.get_ref(), &params).await
+        search_images_simple_form(&pool.get_ref().pool, &params).await
     } else {
-        search_images_advanced_form(pool.get_ref(), &params).await
+        search_images_advanced_form(&pool.get_ref().pool, &params).await
     }?;
 
-    let image_search = search_images_by_criteria(pool.get_ref(), &params, Some("image_taken_at DESC"))
-        .await?;
+    let image_search = search_images_by_criteria(pool.get_ref().clone(), &params, Some("image_taken_at DESC"))
+        .await
+        .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
     let params_title = params.to_string();
-    let columns_default = ["thumbnail", "ocr_text", "camera_model", "lens_model", "brightness", "image_taken_at"];
+    let columns_default = ["thumbnail", "name", "ocr_text", "camera_model", "image_description", "brightness", "image_taken_at"];
     let columns_default = columns_default.map(String::from).to_vec();
     let columns = params.get_columns_to_display().unwrap_or(columns_default);
     let column_titles = SearchParams::get_column_titles(&columns);

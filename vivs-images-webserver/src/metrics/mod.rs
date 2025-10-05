@@ -1,6 +1,9 @@
+pub mod image_paths_metrics;
 pub mod aspect_ratio_metrics;
 pub mod brightness_metrics;
 pub mod exif_metrics;
 pub mod similarity_metrics;
 pub mod thumbnail_metrics;
 pub mod ocr_text_metrics;
+pub mod tag_metrics;
+pub mod iptc_metrics;

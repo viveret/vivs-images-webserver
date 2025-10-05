@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, error::Error};
 
 use sqlx::{Row, SqlitePool};
 
@@ -6,7 +6,7 @@ use crate::database::common::execute_query;
 
 
 // Retrieves brightness image paths from the brightness table in the database
-pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
+pub async fn get_image_paths_from_db(pool: &SqlitePool) -> Result<HashSet<String>, Box<dyn Error + Send>> {
     let sql = r#"SELECT image_path FROM image_brightness"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     
@@ -16,7 +16,7 @@ pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Has
 }
 
 
-pub async fn query_brightness_table_count(image_path: &str, pool: &SqlitePool) -> actix_web::Result<usize> {
+pub async fn query_brightness_table_count(image_path: &str, pool: &SqlitePool) -> Result<usize, Box<dyn Error + Send>> {
     let sql = r#"SELECT COUNT(*) 'ct' FROM image_brightness WHERE image_path = ?"#;
     let rows = execute_query(pool, sql, vec![ image_path ]).await?;
     let v: Option<u32> = rows.iter().nth(0).map(|r| r.get("ct"));

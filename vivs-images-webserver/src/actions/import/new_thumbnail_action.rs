@@ -5,8 +5,8 @@ use std::io::ErrorKind;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite};
 
+use crate::core::data_context::WebServerActionDataContext;
 use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 use crate::calc::file_paths_comparison::FilePathComparisonModel;
 use crate::converters::extract_image_thumbnail::open_and_extract_multiple_image_thumbnails_standard_sizes;
@@ -28,17 +28,17 @@ impl ThumbnailProcessor {
 
 #[async_trait]
 impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<String>, Arc<ImageThumbnailVec>> for ThumbnailProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
-        get_image_path_comparison_thumbnail_table_analysis(&pool).await
+    async fn get_analysis(&self, pool: WebServerActionDataContext, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<FilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+        get_image_path_comparison_thumbnail_table_analysis(&pool.pool).await
             .map(|v| Arc::new(v))
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<FilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<String>, Box<dyn std::error::Error + Send>> {
+    async fn get_task_items_from_analysis(&self, _pool: WebServerActionDataContext, analysis: Arc<FilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<String>, Box<dyn std::error::Error + Send>> {
         Ok(analysis.files_missing_from_b.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _pool: Pool<Sqlite>) -> Result<Arc<ImageThumbnailVec>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<ImageThumbnailVec>, Box<dyn std::error::Error + Send>> {
         open_and_extract_multiple_image_thumbnails_standard_sizes(&task_item)
             .map(|vals| {
                 let imgs = vals.iter()
@@ -50,16 +50,16 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
             })
     }
 
-    async fn process_task_output(&self, task_output: Arc<ImageThumbnailVec>, pool: Pool<Sqlite>) -> Result<(), Box<dyn std::error::Error + Send>> {
+    async fn process_task_output(&self, task_output: Arc<ImageThumbnailVec>, pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {
         for thumbnail in task_output.0.iter() {
-            execute_insert_image_thumbnail_sql(&thumbnail, &pool).await
+            execute_insert_image_thumbnail_sql(&thumbnail, &pool.pool).await
                 .map_err(|e| Box::new(std::io::Error::other(format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         }
         Ok(())
     }
 
-    async fn task_already_completed(&self, task_input: &String, pool: Pool<Sqlite>) -> Result<bool, Box<dyn std::error::Error + Send>> {
-        query_thumbnail_table_count(&task_input, &pool).await
+    async fn task_already_completed(&self, task_input: &String, pool: WebServerActionDataContext) -> Result<bool, Box<dyn std::error::Error + Send>> {
+        query_thumbnail_table_count(&task_input, &pool.pool).await
             .map(|v| v > 0)
             .map_err(|e| Box::new(std::io::Error::other(format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }

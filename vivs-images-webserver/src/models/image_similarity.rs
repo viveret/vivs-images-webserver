@@ -61,12 +61,12 @@ impl std::fmt::Display for ImageSimilarity {
 
 pub const IMAGE_SIMILARITY_COLUMNS_JSON: &str = r#"
 [
-    {"name": "image_comparison_key", "label": "Image Comparison Key", "description": "The comparison key for image A to image B", "field_type": "i32", "example": "123456", "category": "general"},
-    {"name": "image_comparison_algorithm", "label": "Image Comparison Algorithm", "description": "The comparison algorithm for image A to image B", "field_type": "u8", "example": "0", "category": "general"},
-    {"name": "image_path_a", "label": "Image Path A", "description": "The file path of the left image", "field_type": "string", "example": "/images/photo.jpg", "category": "general"},
-    {"name": "image_path_b", "label": "Image Path B", "description": "The file path of the right image", "field_type": "string", "example": "/images/photo.jpg", "category": "general"},
-    {"name": "similarity_value", "label": "Similarity Value", "description": "The similarity of image A to image B", "field_type": "f64", "example": "0.4", "category": "general"},
-    {"name": "similarity_confidence", "label": "Similarity Confidence", "description": "The reliability of the similarity value of image A to image B", "field_type": "f64", "example": "0.4", "category": "general"}
+    {"name": "image_comparison_key", "label": "Image Comparison Key", "description": "The comparison key for image A to image B", "field_type": "i32", "example": "123456", "category": "general", "table_name": "image_similarity"},
+    {"name": "image_comparison_algorithm", "label": "Image Comparison Algorithm", "description": "The comparison algorithm for image A to image B", "field_type": "u8", "example": "0", "category": "general", "table_name": "image_similarity"},
+    {"name": "image_path_a", "label": "Image Path A", "description": "The file path of the left image", "field_type": "string", "example": "/images/photo.jpg", "category": "general", "table_name": "image_similarity"},
+    {"name": "image_path_b", "label": "Image Path B", "description": "The file path of the right image", "field_type": "string", "example": "/images/photo.jpg", "category": "general", "table_name": "image_similarity"},
+    {"name": "similarity_value", "label": "Similarity Value", "description": "The similarity of image A to image B", "field_type": "f64", "example": "0.4", "category": "general", "table_name": "image_similarity"},
+    {"name": "similarity_confidence", "label": "Similarity Confidence", "description": "The reliability of the similarity value of image A to image B", "field_type": "f64", "example": "0.4", "category": "general", "table_name": "image_similarity"}
 ]
 "#;
 

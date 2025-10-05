@@ -1,6 +1,8 @@
 use serde::Deserialize;
+use sqlx::Row;
 
 use crate::models::image_aspect_ratio::ImageAspectRatio;
+use crate::models::image_iptc::ImageIptc;
 use crate::models::image_ocr_text::ImageOcrText;
 use crate::models::image_similarity::ImageSimilarity;
 use crate::models::image_exif::ImageExif;
@@ -10,6 +12,7 @@ use crate::models::image_thumbnail::ImageThumbnail;
 #[derive(Debug, Clone, Deserialize)]
 pub struct ImageFieldMeta {
     pub name: String,
+    pub table_name: String,
     pub label: String,
     pub description: String,
     pub field_type: String,
@@ -35,8 +38,11 @@ impl Image {
         let similarity = ImageSimilarity::new(row);
         let ocr_text = ImageOcrText::new(row);
         let aspect_ratio = ImageAspectRatio::new(row);
-        let path = exif.image_path.clone();
-        
+        let path: String = row.try_get("image_path").unwrap_or_default();
+        if path.is_empty() {
+            panic!("path is empty");
+        }
+
         Image {
             path,
             exif: Some(exif),
@@ -51,10 +57,15 @@ impl Image {
     pub fn get_meta() -> Vec<ImageFieldMeta> {
         let mut x = ImageExif::get_meta();
         x.extend_from_slice(&ImageBrightness::get_meta());
-        x.extend_from_slice(&ImageSimilarity::get_meta());
+        // x.extend_from_slice(&ImageSimilarity::get_meta());
         x.extend_from_slice(&ImageOcrText::get_meta());
         x.extend_from_slice(&ImageAspectRatio::get_meta());
+        x.extend_from_slice(&ImageIptc::get_meta());
         x
+    }
+
+    pub fn get_meta_field(name: &str) -> Option<ImageFieldMeta> {
+        Self::get_meta().iter().find(|c| c.name == name).cloned()
     }
 
     pub fn get_field(&self, field: &str) -> Option<String> {

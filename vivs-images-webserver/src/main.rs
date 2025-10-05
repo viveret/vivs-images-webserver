@@ -1,11 +1,13 @@
 use actix_web::{web, App, HttpServer};
-use sqlx::SqlitePool;
 
 use crate::actions::worker_thread::WorkerThread;
+use crate::core::data_context::WebServerActionDataContext;
 
 pub mod api;
 pub mod actions;
+pub mod cache;
 pub mod calc;
+pub mod core;
 pub mod converters;
 pub mod database;
 pub mod filesystem;
@@ -16,19 +18,16 @@ pub mod view;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
-    // Connect to SQLite database
-    let pool = SqlitePool::connect(&format!("sqlite:{}", models::config::paths::DB_FILE))
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
-
-    let worker_thread = WorkerThread::spawn(pool.clone());
+    let data_ctx = WebServerActionDataContext::open().await?;
+    let worker_thread = WorkerThread::spawn(data_ctx.clone());
     let worker_thread_2 = worker_thread.clone();
 
     println!("Starting server on http://127.0.0.1:8080");
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(data_ctx.clone()))
+            .app_data(web::Data::new(data_ctx.pool.clone()))
             .app_data(web::Data::new(worker_thread_2.clone()))
             .app_data(web::Data::new(worker_thread_2.action_registry.clone()))
             .route("/", web::get().to(view::html::pages::index::index))
@@ -38,8 +37,11 @@ async fn main() -> anyhow::Result<()> {
             .route("/actions/task/{action_task_id}", web::get().to(view::html::pages::task_detail::view_page_task_detail_get))
             .route("/search", web::get().to(view::html::pages::search::search_images))
             .route("/search/wallpapers", web::get().to(view::html::pages::search::search_wallpapers))
-            .route("/categories", web::get().to(view::html::pages::categories::view_page_categories))
-            .route("/categories/{category}", web::get().to(view::html::pages::category_detail::category_detail))
+            .route("/browse/filesystem", web::get().to(view::html::pages::browse_filesystem::view_page_browse_filesystem))
+            .route("/browse/by-property", web::get().to(view::html::pages::browse_by_property::view_page_browse_properties))
+            .route("/browse/by-property/{property}", web::get().to(view::html::pages::browse_by_property_detail::view_page_property_details))
+            .route("/browse/tags", web::get().to(view::html::pages::browse_tags::view_page_tags))
+            .route("/browse/tags/{tag}", web::get().to(view::html::pages::browse_tags::view_page_tag_details))
             .route("/image", web::get().to(view::html::pages::image::view_image))
             .route("/img", web::get().to(api::web::get_image))
             .route("/style.css", web::get().to(api::web::get_style))

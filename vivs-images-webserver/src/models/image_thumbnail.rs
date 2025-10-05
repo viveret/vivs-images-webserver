@@ -1,6 +1,5 @@
 use std::cmp::max;
 
-use image::codecs::png::PngDecoder;
 use image::DynamicImage;
 use sqlx::Row;
 
@@ -71,10 +70,10 @@ impl std::fmt::Display for ImageThumbnail {
 
 pub const IMAGE_THUMBNAIL_COLUMNS_JSON: &str = r#"
 [
-    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general"},
-    {"name": "width_and_length", "label": "Width and Length", "description": "The width and length of the thumbnail image", "field_type": "integer", "example": "64", "category": "general"},
-    {"name": "thumbnail_format", "label": "Thumbnail Format", "description": "The format of the thumbnail image", "field_type": "integer", "example": "1", "category": "general"},
-    {"name": "thumbnail_data", "label": "Data", "description": "The data of the thumbnail image", "field_type": "blob", "category": "general"}
+    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general", "table_name": "image_thumbnail"},
+    {"name": "width_and_length", "label": "Width and Length", "description": "The width and length of the thumbnail image", "field_type": "integer", "example": "64", "category": "general", "table_name": "image_thumbnail"},
+    {"name": "thumbnail_format", "label": "Thumbnail Format", "description": "The format of the thumbnail image", "field_type": "integer", "example": "1", "category": "general", "table_name": "image_thumbnail"},
+    {"name": "thumbnail_data", "label": "Data", "description": "The data of the thumbnail image", "field_type": "blob", "category": "general", "table_name": "image_thumbnail"}
 ]"#;
 
 impl ImageThumbnail {

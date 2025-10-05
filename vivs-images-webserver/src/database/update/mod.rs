@@ -4,3 +4,6 @@ pub mod update_image_exif;
 pub mod update_image_similarity;
 pub mod update_image_thumbnail;
 pub mod update_image_ocr_text;
+pub mod update_image_tags;
+pub mod update_image_iptc;
+pub mod update_image_image_paths;

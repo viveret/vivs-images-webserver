@@ -1,8 +1,9 @@
+use std::error::Error;
+
 use async_trait::async_trait;
 use convert_case::{Case, Casing};
 use nameof::name_of_type;
 use sqlx::SqlitePool;
-use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
 use crate::metrics::aspect_ratio_metrics::{get_aspect_ratio_missing_in_sql_count, get_aspect_ratio_missing_on_disk_count};
@@ -34,7 +35,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingAspectRatioIndicator {
 
     fn get_cron_schedule(&self) -> String { todo!() }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let (difference_total, msg) = get_aspect_ratio_missing_in_sql_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }
@@ -67,7 +68,7 @@ impl IActionIndicator for ImagesInAspectRatioSqlDbWithMissingImageOnDiskIndicato
 
     fn get_cron_schedule(&self) -> String { todo!() }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let (difference_total, msg) = get_aspect_ratio_missing_on_disk_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }

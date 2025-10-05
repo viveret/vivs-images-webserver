@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite};
 
 use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::export::export_image_ocr_text_to_special_dir_action::ExportOcrTextsOrchestratorAction;
 use crate::actions::import::calc_aspect_ratio_action::InsertNewAspectRatioOrchestratorAction;
+use crate::actions::import::new_image_paths_action::InsertNewImagePathsAction;
+use crate::actions::import::new_iptc_action::InsertNewIptcsOrchestratorAction;
+use crate::actions::import::new_tags_action::InsertNewImageTagsFromDiskAction;
 use crate::actions::refresh::delete_missing_brightness_action::DeleteMissingBrightnessOrchestratorAction;
 use crate::actions::refresh::delete_missing_exif_action::DeleteMissingExifOrchestratorAction;
 use crate::actions::refresh::delete_missing_similarity_action::DeleteMissingSimilarityOrchestratorAction;
@@ -16,6 +18,8 @@ use crate::actions::import::new_ocr_text_action::InsertNewOcrTextsOrchestratorAc
 use crate::actions::import::new_similarity_action::{InsertNewSimilaritysFromDiskOrchestratorAction, InsertNewSimilaritysFromThumbnailsOrchestratorAction};
 use crate::actions::import::new_thumbnail_action::InsertNewThumbnailsOrchestratorAction;
 use crate::actions::channels::TaskToWorkerSender;
+use crate::core::data_context::WebServerActionDataContext;
+
 
 
 #[async_trait]
@@ -26,7 +30,7 @@ pub trait IWebServerAction: Send + Sync {
     fn get_is_runnable(&self) -> bool;
     fn get_can_dry_run(&self) -> bool;
     async fn run_task(&self, 
-        pool: Pool<Sqlite>, 
+        pool: WebServerActionDataContext, 
         send: TaskToWorkerSender, 
         dry_run: bool, 
         task_id: u32,
@@ -74,6 +78,7 @@ pub fn find_action(name: String) -> Option<Arc<dyn IWebServerAction>> {
 
 pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
     let mut actions: Vec<Arc<dyn IWebServerAction>> = vec![
+        Arc::new(InsertNewImagePathsAction::new()),
         Arc::new(InsertNewBrightnessOrchestratorAction::new()),
         Arc::new(DeleteMissingBrightnessOrchestratorAction::new()),
         Arc::new(InsertNewExifsOrchestratorAction::new()),
@@ -86,6 +91,8 @@ pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
         Arc::new(InsertNewOcrTextsOrchestratorAction::new()),
         Arc::new(ExportOcrTextsOrchestratorAction::new()),
         Arc::new(InsertNewAspectRatioOrchestratorAction::new()),
+        Arc::new(InsertNewIptcsOrchestratorAction::new()),
+        Arc::new(InsertNewImageTagsFromDiskAction::new()),
         // Arc::new(DeleteMissingAspectRatioOrchestratorAction::new()),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());

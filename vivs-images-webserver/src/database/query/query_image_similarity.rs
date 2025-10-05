@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 
 use sqlx::{Row, SqlitePool};
 
@@ -8,7 +9,7 @@ use crate::converters::extract_image_similarity::compute_comparison_key;
 
 
 
-pub async fn get_image_similarity_value_exists_in_db(path_a: &str, path_b: &str, pool: &SqlitePool) -> actix_web::Result<bool> {
+pub async fn get_image_similarity_value_exists_in_db(path_a: &str, path_b: &str, pool: &SqlitePool) -> Result<bool, Box<dyn Error + Send>> {
     let hash = compute_comparison_key(path_a, path_b).to_string();
     let rows = execute_query(pool,
         r#"
@@ -29,7 +30,7 @@ pub async fn get_image_similarity_value_exists_in_db(path_a: &str, path_b: &str,
 }
 
 // Retrieves unique image paths from database
-pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<HashSet<String>> {
+pub async fn get_image_paths_from_db(pool: &SqlitePool) -> Result<HashSet<String>, Box<dyn Error + Send>> {
     let sql = r#"SELECT image_path_a 'image_path' FROM image_similarity UNION SELECT image_path_b 'image_path' FROM image_similarity"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     
@@ -38,7 +39,7 @@ pub async fn get_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<Has
         .collect())
 }
 
-pub async fn get_image_path_pairs_from_db(pool: &SqlitePool) -> actix_web::Result<Vec<(String, String)>> {
+pub async fn get_image_path_pairs_from_db(pool: &SqlitePool) -> Result<Vec<(String, String)>, Box<dyn Error + Send>> {
     let sql = r#"SELECT image_path_a, image_path_b FROM image_similarity;"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     
@@ -59,7 +60,7 @@ pub async fn get_image_path_pairs_from_db(pool: &SqlitePool) -> actix_web::Resul
 }
 
 // Retrieves the amount of unique image paths from database
-pub async fn get_count_of_image_paths_from_db(pool: &SqlitePool) -> actix_web::Result<u32> {
+pub async fn get_count_of_image_paths_from_db(pool: &SqlitePool) -> Result<u32, Box<dyn Error + Send>> {
     let sql = r#"SELECT COUNT(*) 'ct' FROM (SELECT image_path_a 'image_path' FROM image_similarity UNION SELECT image_path_b 'image_path' FROM image_similarity)"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     
@@ -69,7 +70,7 @@ pub async fn get_count_of_image_paths_from_db(pool: &SqlitePool) -> actix_web::R
         .unwrap_or_default())
 }
 
-pub async fn get_similarity_table_count_from_db(pool: &SqlitePool) -> actix_web::Result<usize> {
+pub async fn get_similarity_table_count_from_db(pool: &SqlitePool) -> Result<usize, Box<dyn Error + Send>> {
     let sql = r#"SELECT COUNT(*) 'ct' FROM image_similarity;"#;
     let rows = execute_query(pool, sql, vec![]).await?;
 
@@ -80,7 +81,7 @@ pub async fn get_similarity_table_count_from_db(pool: &SqlitePool) -> actix_web:
     Ok(v as usize)
 }
 
-pub async fn query_similarity_table_count(path: &str, pool: &SqlitePool) -> actix_web::Result<usize> {
+pub async fn query_similarity_table_count(path: &str, pool: &SqlitePool) -> Result<usize, Box<dyn Error + Send>> {
     let sql = r#"SELECT COUNT(*) 'ct' FROM image_similarity WHERE image_path_a = ? OR image_path_b = ?;"#;
     let rows = execute_query(pool, sql, vec![ path, path ]).await?;
 
@@ -91,7 +92,7 @@ pub async fn query_similarity_table_count(path: &str, pool: &SqlitePool) -> acti
     Ok(v as usize)
 }
 
-pub async fn query_similarity_table_paths_using_thumbnail_algo(comp_algo: ImageComparisonAlgorithm, pool: &SqlitePool) -> actix_web::Result<Vec<String>> {
+pub async fn query_similarity_table_paths_using_thumbnail_algo(comp_algo: ImageComparisonAlgorithm, pool: &SqlitePool) -> Result<Vec<String>, Box<dyn Error + Send>> {
     let sql = r#"
     SELECT DISTINCT image_path_a 'path' FROM image_similarity WHERE image_comparison_algorithm = ? UNION
         SELECT DISTINCT image_path_b 'path' FROM image_similarity WHERE image_comparison_algorithm = ?
@@ -105,7 +106,7 @@ pub async fn query_similarity_table_paths_using_thumbnail_algo(comp_algo: ImageC
     Ok(v)
 }
 
-pub async fn query_similarity_table_pairs_using_thumbnail_algo(comp_algo: ImageComparisonAlgorithm, pool: &SqlitePool) -> actix_web::Result<Vec<(String, String)>> {
+pub async fn query_similarity_table_pairs_using_thumbnail_algo(comp_algo: ImageComparisonAlgorithm, pool: &SqlitePool) -> Result<Vec<(String, String)>, Box<dyn Error + Send>> {
     let sql = r#"
     SELECT image_path_a, image_path_b FROM image_similarity WHERE image_comparison_algorithm = ?;"#;
     let comp_algo = (comp_algo as u8).to_string();
@@ -127,7 +128,7 @@ pub async fn query_similarity_table_pairs_using_thumbnail_algo(comp_algo: ImageC
     Ok(v)
 }
 
-pub async fn get_count_of_comparisons_per_image_path(pool: &SqlitePool) -> actix_web::Result<HashMap<String, u32>> {
+pub async fn get_count_of_comparisons_per_image_path(pool: &SqlitePool) -> Result<HashMap<String, u32>, Box<dyn Error + Send>> {
     let sql = r#"SELECT image_path_a as image_path, COUNT(*) as ct FROM image_similarity GROUP BY image_path_a;"#;
     let rows = execute_query(pool, sql, vec![]).await?;
     

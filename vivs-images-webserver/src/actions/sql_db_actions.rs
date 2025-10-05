@@ -2,8 +2,8 @@ use std::{io::ErrorKind, sync::Arc};
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite};
 
+use crate::core::data_context::WebServerActionDataContext;
 use crate::actions::analysis_task_item_processor::TaskOrchestrationOptions;
 use crate::actions::{action_registry::IWebServerAction, channels::TaskToWorkerSender};
 
@@ -85,7 +85,7 @@ impl IWebServerAction for SqlDbAction {
     
     fn get_can_dry_run(&self) -> bool { false }
     
-    async fn run_task(&self, _pool: Pool<Sqlite>, send: TaskToWorkerSender, _dry_run: bool, task_id: u32, _orch_options: TaskOrchestrationOptions) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
+    async fn run_task(&self, _pool: WebServerActionDataContext, send: TaskToWorkerSender, _dry_run: bool, task_id: u32, _orch_options: TaskOrchestrationOptions) -> actix_web::Result<(), Box<dyn std::error::Error + Send>> {
         send.send(super::channels::TaskToWorkerMessage::LogInfo(task_id, format!("Task has been run!")))
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         Ok(())

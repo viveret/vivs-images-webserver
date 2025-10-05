@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Result};
 use htmlentity::entity::ICodedDataTrait;
-use sqlx::SqlitePool;
 
+use crate::core::data_context::WebServerActionDataContext;
 use crate::database::query::search::find_image_by_path;
 use crate::models::query_params::search_params::SearchParams;
 use crate::models::query_params::similar_images_params::SimilarImagesParams;
@@ -13,16 +13,16 @@ use crate::view::html::model_views::image::generate_image_table_rows;
 
 
 pub async fn view_image(
-    pool: web::Data<SqlitePool>,
+    pool: web::Data<WebServerActionDataContext>,
     params: web::Query<SimilarImagesParams>,
 ) -> Result<HttpResponse> {
-    match find_image_by_path(&pool, &params.image_path).await {
+    match find_image_by_path(pool.get_ref().clone(), &params.image_path).await {
         Ok(Some(image)) => {
-            let thumbnails_html = generate_image_thumbnail_table_query_thumbnails_db(&params.image_path, &pool).await;
+            let thumbnails_html = generate_image_thumbnail_table_query_thumbnails_db(&params.image_path, &pool.get_ref().pool).await;
             
             let threshold = params.threshold.unwrap_or(1.0);
 
-            let similarity_table_html = match execute_query(pool.get_ref(),
+            let similarity_table_html = match execute_query(&pool.get_ref().pool,
                 r#"
                 SELECT 
                     CASE 

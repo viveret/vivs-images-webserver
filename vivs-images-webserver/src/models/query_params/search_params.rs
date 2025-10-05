@@ -155,10 +155,6 @@ impl SearchParams {
         self.get_field_value("category")
     }
 
-    pub fn get_category_value(&self) -> Option<String> {
-        self.get_field_value("category_value")
-    }
-
     pub fn get_limit(&self) -> Option<i32> {
         self.get_field_value_or_default("limit").and_then(|v| v.parse::<i32>().ok())
     }
@@ -370,6 +366,7 @@ impl SearchParams {
         columns.iter().filter_map(|c| {
             match c.as_str() {
                 "thumbnail" => Some("Thumbnail".to_string()),
+                "name" => Some("Name".to_string()),
                 "path" => Some("Path".to_string()),
                 _ => all_meta.iter()
                         .find(|m| m.name == *c)

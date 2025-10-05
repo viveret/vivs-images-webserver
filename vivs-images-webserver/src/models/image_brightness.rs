@@ -12,8 +12,8 @@ pub struct ImageBrightness {
 
 pub const IMAGE_BRIGHTNESS_COLUMNS_JSON: &str = r#"
 [
-    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general"},
-    {"name": "brightness", "label": "Brightness", "description": "The brightness of the image", "field_type": "f32", "example":"0.4", "category": "general"}
+    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general", "table_name": "image_brightness"},
+    {"name": "brightness", "label": "Brightness", "description": "The brightness of the image", "field_type": "f32", "example":"0.4", "category": "general", "table_name": "image_brightness"}
 ]"#;
 
 impl ImageBrightness {

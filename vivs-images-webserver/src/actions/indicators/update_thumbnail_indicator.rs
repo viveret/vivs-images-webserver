@@ -1,8 +1,9 @@
+use std::error::Error;
+
 use async_trait::async_trait;
 use convert_case::{Case, Casing};
 use nameof::name_of_type;
 use sqlx::SqlitePool;
-use actix_web::Result;
 
 use crate::actions::action_indicator::{ActionIndicatorCheckMessage, IActionIndicator};
 use crate::metrics::thumbnail_metrics::{get_thumbnail_missing_in_sql_count, get_thumbnail_missing_on_disk_count};
@@ -38,7 +39,7 @@ impl IActionIndicator for ImagesOnDiskWithMissingThumbnailIndicator {
         todo!()
     }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let (difference_total, msg) = get_thumbnail_missing_in_sql_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }
@@ -75,7 +76,7 @@ impl IActionIndicator for ImagesInThumbnailSqlDbWithMissingImageOnDiskIndicator 
         todo!()
     }
 
-    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage> {
+    async fn perform_indicator_check_action(&self, pool: &SqlitePool) -> Result<ActionIndicatorCheckMessage, Box<dyn Error + Send>> {
         let (difference_total, msg) = get_thumbnail_missing_on_disk_count(pool).await?;
         Ok(ActionIndicatorCheckMessage(difference_total != 0, msg))
     }

@@ -1,9 +1,11 @@
 use std::collections::HashSet;
+use std::error::Error;
 use std::path::Path;
 use homedir::my_home;
 
 // Common image extensions for reuse
-pub const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "bmp", "gif", "webp"];
+pub const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "bmp", "gif", "webp", "tif", "tiff"];
+pub const JPEG_TIFF_EXTENSIONS: &[&str] = &["jpg", "jpeg", "tif", "tiff"];
 pub const TEXT_EXTENSIONS: &[&str] = &["txt"];
 
 // Helper function to check if a file has any of the given extensions
@@ -41,11 +43,11 @@ pub fn get_files_in_folder<P: AsRef<Path>>(folder: P, extensions: &[&str]) -> Ha
     results
 }
 
-fn get_sync_path(base_dir: &str, sync_folder: &str, subfolder: Option<String>) -> actix_web::Result<String> {
+fn get_sync_path(base_dir: &str, sync_folder: &str, subfolder: Option<String>) -> Result<String, Box<dyn Error + Send>> {
     let mut sync_path = my_home()
         .ok()
         .flatten()
-        .ok_or_else(|| actix_web::error::ErrorInternalServerError("Home directory not found"))?;
+        .ok_or_else(|| Box::new(std::io::Error::other("Home directory not found")) as Box<dyn Error + Send>)?;
     
     sync_path.push(format!("{}/{}", base_dir, sync_folder));
     if let Some(subfolder) = subfolder {
@@ -53,39 +55,44 @@ fn get_sync_path(base_dir: &str, sync_folder: &str, subfolder: Option<String>) -
     }
     
     let canonical_path = sync_path.canonicalize()
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("Path canonicalization failed: {}", e)))?;
+        .map_err(|e| Box::new(e) as Box<dyn Error + Send>)?; // error::ErrorInternalServerError(format!("Path canonicalization failed: {}", e))
     
     canonical_path.to_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| actix_web::error::ErrorInternalServerError("Path contains invalid UTF-8"))
+        .ok_or_else(|| Box::new(std::io::Error::other("Path contains invalid UTF-8")) as Box<dyn Error + Send>)
 }
 
 pub fn get_images_in_folder(folder: String) -> HashSet<String> {
     get_files_in_folder(folder, IMAGE_EXTENSIONS)
 }
 
-pub fn get_photo_sync_path() -> actix_web::Result<String> {
+pub fn get_photo_sync_path() -> Result<String, Box<dyn Error + Send>> {
     get_sync_path("Pictures", "photo-sync.git", None)
 }
 
-pub fn get_images_in_photo_sync_path() -> actix_web::Result<HashSet<String>> {
+pub fn get_images_in_photo_sync_path() -> Result<HashSet<String>, Box<dyn Error + Send>> {
     let images_path = get_photo_sync_path()?;
     Ok(get_images_in_folder(images_path))
+}
+
+pub fn get_jpg_tiff_in_photo_sync_path() -> Result<HashSet<String>, Box<dyn Error + Send>> {
+    let images_path = get_photo_sync_path()?;
+    Ok(get_files_in_folder(images_path, JPEG_TIFF_EXTENSIONS))
 }
 
 pub fn get_ocr_text_file_paths_in_folder(folder: String) -> HashSet<String> {
     get_files_in_folder(folder, TEXT_EXTENSIONS)
 }
 
-pub fn get_doc_sync_path(subfolder: Option<String>) -> actix_web::Result<String> {
+pub fn get_doc_sync_path(subfolder: Option<String>) -> Result<String, Box<dyn Error + Send>> {
     get_sync_path("Documents", "doc-sync.git", subfolder)
 }
 
-pub fn get_image_ocr_text_export_path() -> actix_web::Result<String> {
+pub fn get_image_ocr_text_export_path() -> Result<String, Box<dyn Error + Send>> {
     get_doc_sync_path(Some("image_ocr_text_export/".to_string()))
 }
 
-pub fn get_ocr_text_file_paths_in_doc_sync_path() -> actix_web::Result<HashSet<String>> {
+pub fn get_ocr_text_file_paths_in_doc_sync_path() -> Result<HashSet<String>, Box<dyn Error + Send>> {
     let docs_path = get_image_ocr_text_export_path()?;
     Ok(get_ocr_text_file_paths_in_folder(docs_path))
 }

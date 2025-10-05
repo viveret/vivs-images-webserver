@@ -20,7 +20,9 @@ pub fn layout_view(title: Option<&str>, inner_content: &str) -> String {
             <a href="/">Home</a> |
             <a href="/actions">Actions</a> |
             <a href="/search">Search</a> |
-            <a href="/categories">Browse by Category</a>
+            <a href="/browse/filesystem">Browse Filesystem</a> |
+            <a href="/browse/tags">Browse Tags</a> |
+            <a href="/browse/by-property">Browse By Property</a>
         </div>
         {}
     </body>

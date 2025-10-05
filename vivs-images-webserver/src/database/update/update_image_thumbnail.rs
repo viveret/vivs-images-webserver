@@ -1,10 +1,13 @@
+use std::error::Error;
+
 use actix_web::Either;
 use sqlx::{Pool, Sqlite};
 
-use crate::{database::common::{execute_update_or_insert, execute_update_or_insert_with_blob}, models::image_thumbnail::ImageThumbnail};
+use crate::models::image_thumbnail::ImageThumbnail;
+use crate::database::common::{execute_update_or_insert, execute_update_or_insert_with_blob};
 
 
-pub async fn execute_update_image_thumbnail_sql(image_path: &String, thumbnail: f64, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
+pub async fn execute_update_image_thumbnail_sql(image_path: &String, thumbnail: f64, pool: &Pool<Sqlite>) -> Result<(), Box<dyn Error + Send>> {
     let query = r#"
         UPDATE image_thumbnail
         SET thumbnail = ?, updated_at = CURRENT_TIMESTAMP
@@ -15,11 +18,11 @@ pub async fn execute_update_image_thumbnail_sql(image_path: &String, thumbnail: 
     if r == 1 {
         Ok(())
     } else {
-        Err(actix_web::error::ErrorInternalServerError(format!("SQL update returned {} rows", r)))
+        Err(Box::new(std::io::Error::other(format!("SQL update returned {} rows", r))))
     }
 }
 
-pub async fn execute_insert_image_thumbnail_sql(thumbnail: &ImageThumbnail, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
+pub async fn execute_insert_image_thumbnail_sql(thumbnail: &ImageThumbnail, pool: &Pool<Sqlite>) -> Result<(), Box<dyn Error + Send>> {
     let regular_column_names = ImageThumbnail::get_meta().iter().filter(|c| c.field_type != "blob").map(|c| c.name.to_string()).collect::<Vec<String>>();
     let blob_column_names = ImageThumbnail::get_meta().iter().filter(|c| c.field_type == "blob").map(|c| c.name.to_string()).collect::<Vec<String>>();
     let column_names_sql = regular_column_names.join(", ");
@@ -32,7 +35,7 @@ pub async fn execute_insert_image_thumbnail_sql(thumbnail: &ImageThumbnail, pool
         if let Some(blob) = thumbnail.get_field_blob(blob_c) {
             params.push(Either::Right(blob));
         } else {
-            return Err(actix_web::error::ErrorInternalServerError(format!("Could not get blob from data object")));
+            return Err(Box::new(std::io::Error::other(format!("Could not get blob from data object"))));
         }
     }
     let r = execute_update_or_insert_with_blob(&pool, &query, params).await?;
@@ -40,17 +43,17 @@ pub async fn execute_insert_image_thumbnail_sql(thumbnail: &ImageThumbnail, pool
     if r == 1 {
         Ok(())
     } else {
-        Err(actix_web::error::ErrorInternalServerError(format!("SQL insert returned {} rows", r)))
+        Err(Box::new(std::io::Error::other(format!("SQL insert returned {} rows", r))))
     }
 }
 
-pub async fn execute_delete_image_thumbnail_sql(image_path: &String, pool: &Pool<Sqlite>) -> Result<(), actix_web::Error> {
+pub async fn execute_delete_image_thumbnail_sql(image_path: &String, pool: &Pool<Sqlite>) -> Result<(), Box<dyn Error + Send>> {
     let query = r#"DELETE FROM image_thumbnail WHERE image_path = ?;"#;
     let r = execute_update_or_insert(pool, query, vec![ image_path ]).await?;
     let r = r.rows_affected();
     if r == 1 {
         Ok(())
     } else {
-        Err(actix_web::error::ErrorInternalServerError(format!("SQL delete returned {} rows", r)))
+        Err(Box::new(std::io::Error::other(format!("SQL delete returned {} rows", r))))
     }
 }

@@ -1,7 +1,9 @@
 pub mod actions;
 pub mod action_detail;
-pub mod categories;
-pub mod category_detail;
+pub mod browse_filesystem;
+pub mod browse_tags;
+pub mod browse_by_property;
+pub mod browse_by_property_detail;
 pub mod index;
 pub mod image;
 pub mod search;

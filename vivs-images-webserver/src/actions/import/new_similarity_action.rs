@@ -2,8 +2,7 @@ use std::collections::HashSet;
 use std::io::ErrorKind;
 use std::sync::Arc;
 
-use sqlx::{Pool, Sqlite};
-
+use crate::core::data_context::WebServerActionDataContext;
 use crate::actions::analysis_task_item_processor::LogProgListenerPair;
 use crate::calc::file_paths_comparison::CrossFilePathComparisonModel;
 use crate::calc::math::calculate_progress;
@@ -31,13 +30,13 @@ use async_trait::async_trait;
 
 #[async_trait]
 impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> for SimilarityFromDiskProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<CrossFilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
-        get_image_paths_full_difference_similarity_analysis(&pool, log_prog_listener).await
+    async fn get_analysis(&self, pool: WebServerActionDataContext, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<CrossFilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+        get_image_paths_full_difference_similarity_analysis(&pool.pool, log_prog_listener).await
             .map(|v| Arc::new(v))
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<CrossFilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
+    async fn get_task_items_from_analysis(&self, _pool: WebServerActionDataContext, analysis: Arc<CrossFilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
         if let Some(log_prog_listener) = log_prog_listener {
             let total = analysis.pairs_missing_from_b.len();
             Ok(analysis.pairs_missing_from_b
@@ -62,8 +61,8 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         }
     }
 
-    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, pool: Pool<Sqlite>) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
-        let task_result = extract_image_similarity(&task_item, &pool).await;
+    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, _dry_run: bool, pool: WebServerActionDataContext) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
+        let task_result = extract_image_similarity(&task_item, pool).await;
         match task_result {
             Ok(similarity) => {
                 Ok(Arc::new(similarity))
@@ -74,13 +73,13 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         }
     }
 
-    async fn process_task_output(&self, task_output: Arc<ImageSimilarity>, pool: Pool<Sqlite>) -> Result<(), Box<dyn std::error::Error + Send>> {
-        execute_insert_image_similarity_sql(&task_output, &pool).await
+    async fn process_task_output(&self, task_output: Arc<ImageSimilarity>, pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {
+        execute_insert_image_similarity_sql(&task_output, &pool.pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn task_already_completed(&self, task_input: &Arc<ComputeImageSimilarityOptions>, pool: Pool<Sqlite>) -> Result<bool, Box<dyn std::error::Error + Send>> {
-        get_image_similarity_value_exists_in_db(&task_input.image_path_a, &task_input.image_path_b, &pool).await
+    async fn task_already_completed(&self, task_input: &Arc<ComputeImageSimilarityOptions>, pool: WebServerActionDataContext) -> Result<bool, Box<dyn std::error::Error + Send>> {
+        get_image_similarity_value_exists_in_db(&task_input.image_path_a, &task_input.image_path_b, &pool.pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
@@ -119,20 +118,20 @@ impl SimilarityFromThumbnailsProcessor {
 
 #[async_trait]
 impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeImageSimilarityOptions>, HashSet<Arc<ComputeImageSimilarityOptions>>, Arc<ImageSimilarity>> for SimilarityFromThumbnailsProcessor {
-    async fn get_analysis(&self, pool: Pool<Sqlite>, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<CrossFilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
+    async fn get_analysis(&self, pool: WebServerActionDataContext, log_prog_listener: Option<LogProgListenerPair>) -> Result<Arc<CrossFilePathComparisonModel>, Box<dyn std::error::Error + Send>> {
         if let Some(x) = &log_prog_listener {
             x.1("getting thumbnail image paths from db");
             x.0(0.3);
         }
         let thumbnail_paths = 
-        get_thumbnail_image_paths_from_db(&pool).await
+        get_thumbnail_image_paths_from_db(&pool.pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
         
         if let Some(x) = &log_prog_listener {
             x.1("getting similarity image pairs from db");
             x.0(0.6);
         }
-        let similarity_pairs_used_thumbnail_algo = query_similarity_table_pairs_using_thumbnail_algo(ImageComparisonAlgorithm::CustomV2Thumbnails, &pool).await
+        let similarity_pairs_used_thumbnail_algo = query_similarity_table_pairs_using_thumbnail_algo(ImageComparisonAlgorithm::CustomV2Thumbnails, &pool.pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)?;
 
         if let Some(x) = &log_prog_listener {
@@ -143,7 +142,7 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         Ok(Arc::new(CrossFilePathComparisonModel::new_easy_2(thumbnail_paths, "thumbnail paths", similarity_pairs_used_thumbnail_algo, "similarity paths", log_prog_listener)))
     }
 
-    async fn get_task_items_from_analysis(&self, _pool: Pool<Sqlite>, analysis: Arc<CrossFilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
+    async fn get_task_items_from_analysis(&self, _pool: WebServerActionDataContext, analysis: Arc<CrossFilePathComparisonModel>, log_prog_listener: Option<LogProgListenerPair>) -> Result<HashSet<Arc<ComputeImageSimilarityOptions>>, Box<dyn std::error::Error + Send>> {
         if let Some(log_prog_listener) = log_prog_listener {
             let total = analysis.pairs_missing_from_b.len();
             Ok(analysis.pairs_missing_from_b
@@ -178,8 +177,8 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         }
     }
 
-    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, pool: Pool<Sqlite>) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
-        let task_result = extract_image_similarity(&task_item, &pool).await;
+    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, _dry_run: bool, pool: WebServerActionDataContext) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
+        let task_result = extract_image_similarity(&task_item, pool).await;
         match task_result {
             Ok(similarity) => {
                 Ok(Arc::new(similarity))
@@ -190,13 +189,13 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         }
     }
 
-    async fn process_task_output(&self, task_output: Arc<ImageSimilarity>, pool: Pool<Sqlite>) -> Result<(), Box<dyn std::error::Error + Send>> {
-        execute_insert_image_similarity_sql(&task_output, &pool).await
+    async fn process_task_output(&self, task_output: Arc<ImageSimilarity>, pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {
+        execute_insert_image_similarity_sql(&task_output, &pool.pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 
-    async fn task_already_completed(&self, task_input: &Arc<ComputeImageSimilarityOptions>, pool: Pool<Sqlite>) -> Result<bool, Box<dyn std::error::Error + Send>> {
-        get_image_similarity_value_exists_in_db(&task_input.image_path_a, &task_input.image_path_b, &pool).await
+    async fn task_already_completed(&self, task_input: &Arc<ComputeImageSimilarityOptions>, pool: WebServerActionDataContext) -> Result<bool, Box<dyn std::error::Error + Send>> {
+        get_image_similarity_value_exists_in_db(&task_input.image_path_a, &task_input.image_path_b, &pool.pool).await
             .map_err(|e| Box::new(std::io::Error::new(ErrorKind::Other, format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 

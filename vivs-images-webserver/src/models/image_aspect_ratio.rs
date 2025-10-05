@@ -49,11 +49,11 @@ pub struct ImageAspectRatio {
 
 pub const IMAGE_ASPECT_RATIO_COLUMNS_JSON: &str = r#"
 [
-    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general"},
-    {"name": "width_pixels", "label": "Width (pixels)", "description": "The width of the image in pixels", "field_type": "u32", "example":"64", "category": "general"},
-    {"name": "height_pixels", "label": "Height (pixels)", "description": "The height of the image in pixels", "field_type": "u32", "example":"64", "category": "general"},
-    {"name": "aspect_ratio", "label": "Aspect Ratio", "description": "The aspect ratio of the image", "field_type": "f32", "example":"0.4", "category": "general"},
-    {"name": "quality", "label": "Quality", "description": "The quality of the image", "field_type": "u8", "example":"1", "category": "general"}
+    {"name": "image_path", "label": "Image Path", "description": "The file path of the image", "field_type": "string", "example": "/images/photo.jpg", "category": "general", "table_name": "image_aspect_ratio"},
+    {"name": "width_pixels", "label": "Width (pixels)", "description": "The width of the image in pixels", "field_type": "u32", "example":"64", "category": "general", "table_name": "image_aspect_ratio"},
+    {"name": "height_pixels", "label": "Height (pixels)", "description": "The height of the image in pixels", "field_type": "u32", "example":"64", "category": "general", "table_name": "image_aspect_ratio"},
+    {"name": "aspect_ratio", "label": "Aspect Ratio", "description": "The aspect ratio of the image", "field_type": "f32", "example":"0.4", "category": "general", "table_name": "image_aspect_ratio"},
+    {"name": "quality", "label": "Quality", "description": "The quality of the image", "field_type": "u8", "example":"1", "category": "general", "table_name": "image_aspect_ratio"}
 ]"#;
 
 impl ImageAspectRatio {

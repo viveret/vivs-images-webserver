@@ -3,6 +3,7 @@ pub mod extract_image_aspect_ratio;
 pub mod extract_image_brightness;
 pub mod extract_image_taken_at;
 pub mod extract_image_exif;
+pub mod extract_image_iptc;
 pub mod extract_image_ocr_text;
 pub mod extract_image_similarity;
 pub mod extract_image_thumbnail;
