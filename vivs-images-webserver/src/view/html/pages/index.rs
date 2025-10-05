@@ -61,6 +61,7 @@ pub async fn index(
     let known_paths_percent = metrics.total_images as f32 / total_images_on_disk as f32 * 100.0;
     let exif_percent = metrics.total_exif as f32 / total_images_on_disk as f32 * 100.0;
     let iptc_percent = metrics.total_iptc as f32 / total_images_on_disk as f32 * 100.0;
+    let xmp_percent = metrics.total_xmp as f32 / total_images_on_disk as f32 * 100.0;
     let brightness_percent = metrics.total_brightness as f32 / total_images_on_disk as f32 * 100.0;
     let similarity_percent = metrics.total_similarity as f32 / total_images_on_disk_factorial as f32 * 100.0;
     let thumbnail_expected_count = metrics.total_images * (DEFAULT_THUMBNAIL_SIZE_LIST.len() as u32);
@@ -76,6 +77,7 @@ pub async fn index(
                 <li>Tracked Images: {} ({:.2}% of expected {})</li>
                 <li>Total Image Exif values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Iptc values: {} ({:.2}% of expected {})</li>
+                <li>Total Image XMP values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Brightness values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Similarity values: {} ({:.2}% of expected {})</li>
                 <li>Total Image Thumbnails: {} ({:.2}% of expected {})</li>
@@ -88,6 +90,7 @@ pub async fn index(
     metrics.total_images, known_paths_percent, total_images_on_disk,
     metrics.total_exif, exif_percent, total_images_on_disk,
     metrics.total_iptc, iptc_percent, total_images_on_disk,
+    metrics.total_xmp, xmp_percent, total_images_on_disk,
     metrics.total_brightness, brightness_percent, total_images_on_disk,
     metrics.total_similarity, similarity_percent, total_images_on_disk_factorial,
     metrics.total_thumbnails, thumbnail_percent, thumbnail_expected_count,

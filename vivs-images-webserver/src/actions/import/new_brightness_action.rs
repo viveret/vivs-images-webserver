@@ -38,12 +38,13 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         Ok(analysis.files_missing_from_b.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<ImageBrightness>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<Arc<ImageBrightness>>, Box<dyn std::error::Error + Send>> {
         let options = ImageToBrightnessOptions {
             algo: ImageToBrightnessAlgo::SimpleImageRS
         };
         extract_image_brightness_model(&task_item, &options)
             .map(Arc::new)
+            .map(Some)
             .map_err(|e| {
                 Box::new(e) as Box<dyn std::error::Error + Send>
             })

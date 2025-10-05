@@ -8,6 +8,7 @@ use crate::actions::import::calc_aspect_ratio_action::InsertNewAspectRatioOrches
 use crate::actions::import::new_image_paths_action::InsertNewImagePathsAction;
 use crate::actions::import::new_iptc_action::InsertNewIptcsOrchestratorAction;
 use crate::actions::import::new_tags_action::InsertNewImageTagsFromDiskAction;
+use crate::actions::import::new_xmp_action::InsertNewXmpOrchestratorAction;
 use crate::actions::refresh::delete_missing_brightness_action::DeleteMissingBrightnessOrchestratorAction;
 use crate::actions::refresh::delete_missing_exif_action::DeleteMissingExifOrchestratorAction;
 use crate::actions::refresh::delete_missing_similarity_action::DeleteMissingSimilarityOrchestratorAction;
@@ -93,6 +94,7 @@ pub fn get_all_actions() -> Vec<Arc<dyn IWebServerAction>> {
         Arc::new(InsertNewAspectRatioOrchestratorAction::new()),
         Arc::new(InsertNewIptcsOrchestratorAction::new()),
         Arc::new(InsertNewImageTagsFromDiskAction::new()),
+        Arc::new(InsertNewXmpOrchestratorAction::new()),
         // Arc::new(DeleteMissingAspectRatioOrchestratorAction::new()),
     ];
     actions.extend_from_slice(&crate::actions::sql_db_actions::get_sql_db_actions());

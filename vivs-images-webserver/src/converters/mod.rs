@@ -7,5 +7,6 @@ pub mod extract_image_iptc;
 pub mod extract_image_ocr_text;
 pub mod extract_image_similarity;
 pub mod extract_image_thumbnail;
+pub mod extract_image_xmp;
 pub mod comparison;
 pub mod string_to_hashcode;

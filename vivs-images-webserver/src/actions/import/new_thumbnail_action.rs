@@ -38,13 +38,13 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         Ok(analysis.files_missing_from_b.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<ImageThumbnailVec>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<Arc<ImageThumbnailVec>>, Box<dyn std::error::Error + Send>> {
         open_and_extract_multiple_image_thumbnails_standard_sizes(&task_item)
             .map(|vals| {
                 let imgs = vals.iter()
                     .map(|img| ImageThumbnail::from_image(task_item.clone(), ThumbnailFormat::PNG, img))
                     .collect::<Vec<ImageThumbnail>>();
-                Arc::new(ImageThumbnailVec(imgs))
+                Some(Arc::new(ImageThumbnailVec(imgs)))
             }).map_err(|e| {
                 Box::new(e) as Box<dyn std::error::Error + Send>
             })

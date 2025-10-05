@@ -18,6 +18,8 @@ use crate::actions::indicators::update_similarity_indicator::ImagesOnDiskWithMis
 use crate::actions::indicators::update_tags_indicator::ImagesOnDiskWithMissingTagsIndicator;
 use crate::actions::indicators::update_thumbnail_indicator::ImagesInThumbnailSqlDbWithMissingImageOnDiskIndicator;
 use crate::actions::indicators::update_thumbnail_indicator::ImagesOnDiskWithMissingThumbnailIndicator;
+use crate::actions::indicators::update_xmp_indicator::ImagesInXmpSqlDbWithMissingImageOnDiskIndicator;
+use crate::actions::indicators::update_xmp_indicator::ImagesOnDiskWithMissingXmpIndicator;
 
 
 
@@ -40,5 +42,7 @@ pub fn get_sql_db_action_indicators() -> Vec<Rc<dyn IActionIndicator>> {
         Rc::new(ImagesOnDiskWithMissingIptcIndicator::new()),
         Rc::new(ImagesInIptcSqlDbWithMissingImageOnDiskIndicator::new()),
         Rc::new(ImagesOnDiskWithMissingTagsIndicator::new()),
+        Rc::new(ImagesOnDiskWithMissingXmpIndicator::new()),
+        Rc::new(ImagesInXmpSqlDbWithMissingImageOnDiskIndicator::new()),
     ]
 }

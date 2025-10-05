@@ -7,3 +7,4 @@ pub mod new_similarity_action;
 pub mod new_thumbnail_action;
 pub mod new_ocr_text_action;
 pub mod new_image_paths_action;
+pub mod new_xmp_action;

@@ -8,6 +8,7 @@ use crate::models::image_similarity::ImageSimilarity;
 use crate::models::image_exif::ImageExif;
 use crate::models::image_brightness::ImageBrightness;
 use crate::models::image_thumbnail::ImageThumbnail;
+use crate::models::image_xmp::ImageXmp;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ImageFieldMeta {
@@ -57,10 +58,10 @@ impl Image {
     pub fn get_meta() -> Vec<ImageFieldMeta> {
         let mut x = ImageExif::get_meta();
         x.extend_from_slice(&ImageBrightness::get_meta());
-        // x.extend_from_slice(&ImageSimilarity::get_meta());
         x.extend_from_slice(&ImageOcrText::get_meta());
         x.extend_from_slice(&ImageAspectRatio::get_meta());
         x.extend_from_slice(&ImageIptc::get_meta());
+        x.extend_from_slice(&ImageXmp::get_meta());
         x
     }
 

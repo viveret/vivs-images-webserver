@@ -61,11 +61,11 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         }
     }
 
-    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, _dry_run: bool, pool: WebServerActionDataContext) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, _dry_run: bool, pool: WebServerActionDataContext) -> Result<Option<Arc<ImageSimilarity>>, Box<dyn std::error::Error + Send>> {
         let task_result = extract_image_similarity(&task_item, pool).await;
         match task_result {
             Ok(similarity) => {
-                Ok(Arc::new(similarity))
+                Ok(Some(Arc::new(similarity)))
             },
             Err(e) => {
                 Err(Box::new(e) as Box<dyn std::error::Error + Send>)
@@ -177,11 +177,11 @@ impl AnalysisTaskItemProcessor<Arc<CrossFilePathComparisonModel>, Arc<ComputeIma
         }
     }
 
-    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, _dry_run: bool, pool: WebServerActionDataContext) -> Result<Arc<ImageSimilarity>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: Arc<ComputeImageSimilarityOptions>, _dry_run: bool, pool: WebServerActionDataContext) -> Result<Option<Arc<ImageSimilarity>>, Box<dyn std::error::Error + Send>> {
         let task_result = extract_image_similarity(&task_item, pool).await;
         match task_result {
             Ok(similarity) => {
-                Ok(Arc::new(similarity))
+                Ok(Some(Arc::new(similarity)))
             },
             Err(e) => {
                 Err(Box::new(e) as Box<dyn std::error::Error + Send>)

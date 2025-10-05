@@ -7,3 +7,4 @@ pub mod update_ocr_text_indicator;
 pub mod update_tags_indicator;
 pub mod update_iptc_indicator;
 pub mod update_image_paths_indicator;
+pub mod update_xmp_indicator;

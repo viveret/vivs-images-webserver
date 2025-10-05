@@ -34,8 +34,8 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         Ok(analysis.files_missing_from_a.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<String, Box<dyn std::error::Error + Send>> {
-        Ok(task_item)
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<String>, Box<dyn std::error::Error + Send>> {
+        Ok(Some(task_item))
     }
 
     async fn process_task_output(&self, task_output: String, pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {

@@ -8,3 +8,4 @@ pub mod create_image_brightness;
 pub mod create_image_ocr_text;
 pub mod create_image_iptc;
 pub mod create_image_tags;
+pub mod create_image_xmp;

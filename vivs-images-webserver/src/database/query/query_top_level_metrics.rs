@@ -22,6 +22,7 @@ pub async fn query_top_level_metrics(
         SELECT COUNT(*) AS total_tags FROM image_tags;
         SELECT COUNT(*) AS total_ocr_text FROM image_ocr_text;
         SELECT COUNT(*) AS total_iptc FROM image_iptc;
+        SELECT COUNT(*) AS total_xmp FROM image_xmp;
     "#);
 
     let results = execute_query(pool, &query, params).await?;

@@ -37,10 +37,11 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         Ok(analysis.files_missing_from_b.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<ImageOcrText>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<Arc<ImageOcrText>>, Box<dyn std::error::Error + Send>> {
         extract_image_ocr_text(&task_item)
             .map(|ocr_text| ImageOcrText { image_path: task_item, ocr_text })
             .map(Arc::new)
+            .map(Some)
             .map_err(|e| Box::new(std::io::Error::other(format!("{}", e))) as Box<dyn std::error::Error + Send>)
     }
 

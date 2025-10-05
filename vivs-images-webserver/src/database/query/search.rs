@@ -30,6 +30,7 @@ where
     query.push_str(" LEFT JOIN image_ocr_text ON image_paths.image_path = image_ocr_text.image_path");
     query.push_str(" LEFT JOIN image_aspect_ratio ON image_paths.image_path = image_aspect_ratio.image_path");
     query.push_str(" LEFT JOIN image_iptc ON image_paths.image_path = image_iptc.image_path");
+    query.push_str(" LEFT JOIN image_xmp ON image_paths.image_path = image_xmp.image_path");
 
     let mut query_criteria_sql = String::new();
     for (i, (field_op, field_group)) in criteria.iter().enumerate() {

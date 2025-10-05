@@ -8,4 +8,5 @@ pub mod query_image_ocr_text;
 pub mod query_image_iptc;
 pub mod query_image_tag;
 pub mod query_top_level_metrics;
+pub mod query_image_xmp;
 pub mod search;

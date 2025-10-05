@@ -34,7 +34,7 @@ where
 {
     async fn get_analysis(&self, pool: WebServerActionDataContext, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TAnalysis, Box<dyn std::error::Error + Send>>;
     async fn get_task_items_from_analysis(&self, pool: WebServerActionDataContext, analysis: TAnalysis, log_prog_listener: Option<LogProgListenerPair>) -> actix_web::Result<TTaskItemList, Box<dyn std::error::Error + Send>>;
-    async fn process_task_item(&self, task_item: TTaskItem, dry_run: bool, pool: WebServerActionDataContext) -> actix_web::Result<TTaskOutput, Box<dyn std::error::Error + Send>>;
+    async fn process_task_item(&self, task_item: TTaskItem, dry_run: bool, pool: WebServerActionDataContext) -> actix_web::Result<Option<TTaskOutput>, Box<dyn std::error::Error + Send>>;
     async fn process_task_output(&self, task_output: TTaskOutput, pool: WebServerActionDataContext) -> actix_web::Result<(), Box<dyn std::error::Error + Send>>;
     async fn task_already_completed(&self, task_input: &TTaskItem, pool: WebServerActionDataContext) -> actix_web::Result<bool, Box<dyn std::error::Error + Send>>;
     fn get_description(&self) -> String;
@@ -89,18 +89,24 @@ where
         match processor.process_task_item(task_input, dry_run, pool.clone()).await {
             Ok(task_output) => {
                 if dry_run {
-                    Self::send_log_info(&send, task_id, 
-                        format!("Dry run for {}: {}", task_item_str, task_output))?;
+                    if let Some(task_output) = task_output {
+                        Self::send_log_info(&send, task_id, 
+                            format!("Dry run for {}: {}", task_item_str, task_output))?;
+                    }
                 } else {
-                    match processor.process_task_output(task_output, pool.clone()).await {
-                        Ok(()) => {
-                            Self::send_log_info(&send, task_id, 
-                                format!("{} processed {} successfully", processor.get_item_name(), task_item_str))?;
-                        },
-                        Err(e) => {
-                            Self::send_log_error(&send, task_id, 
-                                format!("{} process {} output error: {}", processor.get_item_name(), task_item_str, e))?;
+                    if let Some(task_output) = task_output {
+                        match processor.process_task_output(task_output, pool.clone()).await {
+                            Ok(()) => {
+                                Self::send_log_info(&send, task_id, 
+                                    format!("{} processed {} successfully", processor.get_item_name(), task_item_str))?;
+                            },
+                            Err(e) => {
+                                Self::send_log_error(&send, task_id, 
+                                    format!("{} process {} output error: {}", processor.get_item_name(), task_item_str, e))?;
+                            }
                         }
+                    } else {
+                        // nothing
                     }
                 }
             },

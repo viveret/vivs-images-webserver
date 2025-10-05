@@ -2,3 +2,6 @@ pub mod delete_missing_brightness_action;
 pub mod delete_missing_exif_action;
 pub mod delete_missing_similarity_action;
 pub mod delete_missing_thumbnails_action;
+pub mod delete_missing_aspect_ratio_action;
+pub mod delete_missing_iptc_action;
+pub mod delete_missing_xmp_action;

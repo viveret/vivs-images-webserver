@@ -85,7 +85,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, ImageOcrText, Vec<I
         Ok(items)
     }
 
-    async fn process_task_item(&self, task_item: ImageOcrText, dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<String>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: ImageOcrText, dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<Arc<String>>, Box<dyn std::error::Error + Send>> {
         if !task_item.ocr_text.is_empty() {
             if let Some(export_to_path) = change_image_to_ocr_text_base_path(&task_item.image_path)? {
                 if !dry_run {
@@ -99,7 +99,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, ImageOcrText, Vec<I
                 }
             }
         }
-        Ok(Arc::new(String::default()))
+        Ok(None)
     }
 
     async fn process_task_output(&self, _task_output: Arc<String>, _pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {

@@ -36,7 +36,7 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         Ok(analysis.files_missing_from_b.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<ImageTagSet>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<Arc<ImageTagSet>>, Box<dyn std::error::Error + Send>> {
         let mut exif_tags = extract_image_exif_tags(&task_item)
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send>)?;
 
@@ -48,7 +48,14 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         for t in iptc_tags {
             exif_tags.insert(t);
         }
-        Ok(Arc::new(ImageTagSet::new_from_strings(task_item, exif_tags)))
+
+        Ok(
+            if exif_tags.is_empty() {
+                None
+            } else {
+                Some(Arc::new(ImageTagSet::new_from_strings(task_item, exif_tags)))
+            }
+        )
     }
 
     async fn process_task_output(&self, task_output: Arc<ImageTagSet>, pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {

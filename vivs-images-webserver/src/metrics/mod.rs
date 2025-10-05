@@ -7,3 +7,4 @@ pub mod thumbnail_metrics;
 pub mod ocr_text_metrics;
 pub mod tag_metrics;
 pub mod iptc_metrics;
+pub mod xmp_metrics;

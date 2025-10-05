@@ -11,6 +11,7 @@ pub struct TopLevelMetrics {
     pub total_thumbnails: u32,
     pub total_ocr_text: u32,
     pub total_iptc: u32,
+    pub total_xmp: u32,
     pub total_tags: u32,
     pub last_updated: SystemTime,
 }
@@ -25,6 +26,7 @@ impl TopLevelMetrics {
             total_thumbnails: results.iter().map(|row| row.try_get::<u32, _>("total_thumbnails").unwrap_or_default()).max().unwrap_or_default(),
             total_ocr_text: results.iter().map(|row| row.try_get::<u32, _>("total_ocr_text").unwrap_or_default()).max().unwrap_or_default(),
             total_iptc: results.iter().map(|row| row.try_get::<u32, _>("total_iptc").unwrap_or_default()).max().unwrap_or_default(),
+            total_xmp: results.iter().map(|row| row.try_get::<u32, _>("total_xmp").unwrap_or_default()).max().unwrap_or_default(),
             total_tags: results.iter().map(|row| row.try_get::<u32, _>("total_tags").unwrap_or_default()).max().unwrap_or_default(),
             // get when DB_FILE was last updated
             last_updated: std::fs::metadata(crate::models::config::paths::DB_FILE)

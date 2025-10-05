@@ -9,5 +9,6 @@ pub mod image_brightness;
 pub mod image_thumbnail;
 pub mod image_tag;
 pub mod image_ocr_text;
+pub mod image_xmp;
 pub mod query_params;
 pub mod top_level_metrics;

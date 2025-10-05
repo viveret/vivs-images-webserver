@@ -36,9 +36,10 @@ impl AnalysisTaskItemProcessor<Arc<FilePathComparisonModel>, String, HashSet<Str
         Ok(analysis.files_missing_from_b.clone())
     }
 
-    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Arc<ImageIptc>, Box<dyn std::error::Error + Send>> {
+    async fn process_task_item(&self, task_item: String, _dry_run: bool, _pool: WebServerActionDataContext) -> Result<Option<Arc<ImageIptc>>, Box<dyn std::error::Error + Send>> {
         extract_image_iptc(&task_item)
             .map(Arc::new)
+            .map(Some)
     }
 
     async fn process_task_output(&self, task_output: Arc<ImageIptc>, pool: WebServerActionDataContext) -> Result<(), Box<dyn std::error::Error + Send>> {

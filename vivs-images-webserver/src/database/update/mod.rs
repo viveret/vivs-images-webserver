@@ -7,3 +7,4 @@ pub mod update_image_ocr_text;
 pub mod update_image_tags;
 pub mod update_image_iptc;
 pub mod update_image_image_paths;
+pub mod update_image_xmp;
