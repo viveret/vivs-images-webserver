@@ -1,15 +1,16 @@
+use std::collections::HashMap;
+
 use actix_web::{web, HttpResponse, Result};
 use htmlentity::entity::ICodedDataTrait;
 
 use crate::core::data_context::WebServerActionDataContext;
-use crate::database::query::search::find_image_by_path;
+use crate::database::query::search::{find_image_by_path, SearchBuilder};
+use crate::models::image_similarity::ImageSimilarity;
 use crate::models::query_params::search_params::SearchParams;
 use crate::models::query_params::similar_images_params::SimilarImagesParams;
-use crate::database::common::execute_query;
 use crate::view::html::common::{create_html_table, image_html};
 use crate::view::html::layout::layout_view;
-use crate::view::html::model_views::image::generate_image_thumbnail_table_query_thumbnails_db;
-use crate::view::html::model_views::image::generate_image_table_rows;
+use crate::view::html::model_views::image::{generate_image_table_rows, generate_image_thumbnail_table_query_thumbnails_db};
 
 
 pub async fn view_image(
@@ -22,43 +23,45 @@ pub async fn view_image(
             
             let threshold = params.threshold.unwrap_or(1.0);
 
-            let similarity_table_html = match execute_query(&pool.get_ref().pool,
-                r#"
-                SELECT 
-                    CASE 
-                        WHEN isim.image_path_a = ? THEN isim.image_path_b 
-                        ELSE isim.image_path_a 
-                    END as related_image_path,
-                    isim.similarity_value,
-                    ie.*
-                FROM image_similarity isim
-                LEFT JOIN image_exif ie ON 
-                    (isim.image_path_a = ? AND ie.image_path = isim.image_path_b)
-                    OR (isim.image_path_b = ? AND ie.image_path = isim.image_path_a)
-                WHERE 
-                    (isim.image_path_a = ? OR isim.image_path_b = ?)
-                    AND isim.similarity_value >= 0.5
-                    AND isim.similarity_value <= ?
-                ORDER BY isim.similarity_value DESC
-                LIMIT 20
-                "#,
-                vec![
-                    &params.image_path,  // 1st param for CASE
-                    &params.image_path,  // 2nd param for JOIN
-                    &params.image_path,  // 3rd param for JOIN  
-                    &params.image_path,  // 4th param for WHERE
-                    &params.image_path,  // 5th param for WHERE
-                    &threshold.to_string()  // 6th param for similarity
-                ]
-            ).await {
-                Ok(rows) => {
-                    let rows = rows.into_iter().map(|row| {
-                        crate::models::image::Image::new(&row)
-                    }).collect::<Vec<_>>();
-                    
-                    let columns = ["thumbnail", "similarity_value", "path", "camera_model", "lens_model", "exposure_time", "iso", "focal_length"];
+            let select_from_source_query = SearchBuilder::new()
+                .with_base_table("image_similarity")
+                .with_select_columns(vec![
+                    "CASE WHEN image_similarity.image_path_a = ? THEN image_similarity.image_path_b ELSE image_similarity.image_path_a END as image_path".to_string(),
+                ])
+                .with_field_meta_columns(ImageSimilarity::get_meta_for_single())
+                .with_select_clause_param(params.image_path.clone())
+                .with_criteria(vec![
+                    ("AND".to_string(), {
+                        let mut map = HashMap::new();
+                        map.insert("image_similarity.similarity_value >= ?".to_string(), "0.5".to_string());
+                        map.insert("image_similarity.similarity_value <= ?".to_string(), threshold.to_string());
+                        map
+                    }),
+                    ("OR".to_string(), {
+                        let mut map = HashMap::new();
+                        map.insert("image_similarity.image_path_a = ?".to_string(), params.image_path.clone());
+                        map.insert("image_similarity.image_path_b = ?".to_string(), params.image_path.clone());
+                        map
+                    })
+                ])
+                .with_order_by("image_similarity.similarity_value DESC")
+                .with_pagination(20, 0);
+            
+            let similar_images = SearchBuilder::new()
+                .with_base_table("image_similarity")
+                .with_base_table_as_select(select_from_source_query)
+                .with_select_columns(vec![
+                    "image_similarity.image_path".to_string(),
+                ])
+                .with_default_tables()
+                .execute_get_images(pool.as_ref().clone())
+                .await;
+
+            let similarity_table_html = match similar_images {
+                Ok(images) => {
+                    let columns = ["thumbnail", "similarity_value", "path", "camera_model", "lens_model", "exposure_time", "focal_length"];
                     let columns = columns.map(String::from).to_vec();
-                    let rows_html = generate_image_table_rows(&rows, &columns);
+                    let rows_html = generate_image_table_rows(&images, &columns);
                     create_html_table(
                         &format!("Images similar to {} (threshold: {})", params.image_path, threshold),
                         &SearchParams::get_column_titles(&columns),

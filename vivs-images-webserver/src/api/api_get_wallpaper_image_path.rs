@@ -13,7 +13,14 @@ pub async fn api_get_wallpaper_image_path_inner(pool: WebServerActionDataContext
     let wallpaper_search = search_images_by_criteria(pool, &wallpaper_search_params, Some("RANDOM()")).await?;
     if wallpaper_search.total_count > 0 {
         if let Some(wallpaper) = wallpaper_search.items.first() {
-            return Ok(Some(wallpaper.path.clone()));
+            match wallpaper {
+                Ok(wallpaper) => {
+                    return Ok(Some(wallpaper.path.clone()));
+                }
+                Err(e) => {
+                    return Err(Box::new(std::io::Error::other(e.to_string())) as Box<dyn Error + Send>);
+                }
+            }
         }
     }
     

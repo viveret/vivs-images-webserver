@@ -19,6 +19,7 @@ impl TryFrom<u8> for ImageComparisonAlgorithm {
         match value {
             0 => Ok(Self::Magick),
             1 => Ok(Self::CustomV1),
+            2 => Ok(Self::CustomV2Thumbnails),
             _ => Err(())
         }
     }
@@ -73,8 +74,19 @@ pub const IMAGE_SIMILARITY_COLUMNS_JSON: &str = r#"
 impl ImageSimilarity {
     pub fn new(row: &sqlx::sqlite::SqliteRow) -> Self {
         let image_comparison_key: i32 = row.try_get("image_comparison_key").unwrap_or_default();
-        let image_comparison_algorithm: u8 = row.try_get("image_comparison_algorithm").unwrap_or_default();
-        let image_comparison_algorithm = image_comparison_algorithm.try_into().unwrap();
+        let image_comparison_algorithm: u8 = {
+            let a = row.try_get("image_comparison_algorithm");
+            let b = row.try_get("[image_comparison_algorithm]");
+            let c = row.try_get("image_similarity.image_comparison_algorithm");
+            let d = row.try_get("[image_similarity].[image_comparison_algorithm]");
+
+            a.or(b).or(c).or(d).expect("could not get image_comparison_algorithm :c")
+        };
+        
+        let image_comparison_algorithm = match image_comparison_algorithm.try_into() {
+            Ok(v) => v,
+            Err(()) => panic!("image_comparison_algorithm = {} (error)", image_comparison_algorithm),
+        };
         let image_path_a: String = row.try_get("image_path_a").unwrap_or_default();
         let image_path_b: String = row.try_get("image_path_b").unwrap_or_default();
         let similarity_value: f32 = row.try_get("similarity_value").unwrap_or(0.0);
@@ -104,5 +116,9 @@ impl ImageSimilarity {
     
     pub fn get_meta() -> Vec<ImageFieldMeta> {
         serde_json::from_str::<Vec<ImageFieldMeta>>(IMAGE_SIMILARITY_COLUMNS_JSON).unwrap()
+    }
+
+    pub fn get_meta_for_single() -> Vec<ImageFieldMeta> {
+        Self::get_meta().iter().filter(|c| !c.name.starts_with("image_path_")).cloned().collect()
     }
 }

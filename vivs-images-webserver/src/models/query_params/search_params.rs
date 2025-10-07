@@ -1,7 +1,9 @@
+// search_params.rs
+
 use serde::Deserialize;
 use std::{collections::HashMap, io::ErrorKind};
 
-use crate::{api::web::get_file_from_exe_dir, models::image::Image};
+use crate::{api::web::get_file_from_exe_dir, models::image::{Image, ImageFieldMeta}};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct SearchParamFieldInput {
@@ -53,12 +55,53 @@ pub struct SearchParamFieldMeta {
     pub name: String,
     pub label: String,
     pub input_type: String,
-    pub placeholder: String,
+    pub placeholder: Option<String>,
     pub sql_field: Option<String>,
     pub default: Option<String>,
     pub is_regular: bool,
     pub is_advanced: bool,
     pub is_for_display: bool,
+}
+
+impl SearchParamFieldMeta {
+    pub fn new(new_name: Option<String>, new_label: Option<String>, original: &ImageFieldMeta) -> Self {
+        Self {
+            name: new_name.unwrap_or(original.name.clone()),
+            label: new_label.unwrap_or(original.label.clone()),
+            input_type: Self::sql_type_to_html_input_type(&original.field_type),
+            default: original.default.clone(),
+            placeholder: original.example.clone(),
+            sql_field: Some(format!("[{}].[{}]", original.table_name, original.name)),
+            is_regular: true,
+            is_advanced: false,
+            is_for_display: false,
+        }
+    }
+
+    pub fn gen_search_fields_for_column(original: &ImageFieldMeta) -> Vec<Self> {
+        match original.field_type.as_str() {
+            "string" => {
+                vec![Self::new(None, None, original)]
+            }
+            "number" | "float" | "f32" | "i32" | "u32" | "u8" | "integer" | "real" | "datetime" => {
+                vec![
+                    Self::new(Some(format!("{}_min", original.name)), Some(format!("{} Min", original.label)), original), 
+                    Self::new(Some(format!("{}_max", original.name)), Some(format!("{} Max", original.label)), original)
+                ]
+            },
+            _ => panic!("unknown type {}", original.field_type)
+        }
+    }
+    
+    fn sql_type_to_html_input_type(field_type: &str) -> String {
+        match field_type {
+            "real" | "float" | "f32" | "i32" | "u32" | "u8" | "number" | "integer" => "number".to_string(),
+            "bit" => "checkbox".to_string(),
+            "string" => "text".to_string(),
+            "datetime" => "datetime-local".to_string(),
+            _ => panic!("unknown field type {}", field_type)
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -79,7 +122,9 @@ impl SearchParamFieldOutput {
                 <label for="{}">{}</label>
                 <input type="{}" id="{}" name="{}" placeholder="{}" value="{}" {}/>
             </div>"#,
-            self.field_meta.name, self.field_meta.label, self.field_meta.input_type, self.field_meta.name, self.field_meta.name, self.field_meta.placeholder, value, other_attributes
+            self.field_meta.name, self.field_meta.label, self.field_meta.input_type,
+            self.field_meta.name, self.field_meta.name, self.field_meta.placeholder.as_ref().map(|s| s.as_str()).unwrap_or_default(),
+            value, other_attributes
         )
     }
 
@@ -134,7 +179,9 @@ impl SearchParams {
     pub fn get_meta() -> Vec<SearchParamFieldMeta> {
         let path = get_file_from_exe_dir(SEARCH_PARAMS_JSON_PATH);
         let json = std::fs::read_to_string(path).unwrap();
-        serde_json::from_str::<Vec<SearchParamFieldMeta>>(&json).unwrap()
+        let from_schema: Vec<SearchParamFieldMeta> = Image::get_meta().iter().flat_map(SearchParamFieldMeta::gen_search_fields_for_column).collect();
+        let extended_schema = serde_json::from_str::<Vec<SearchParamFieldMeta>>(&json).unwrap();
+        from_schema.iter().chain(extended_schema.iter()).cloned().collect()
     }
 
     pub fn default() -> Self {
@@ -171,7 +218,7 @@ impl SearchParams {
             let search_pattern = format!("%{}%", query);
             let mut param_group = HashMap::new();
             for text_field in &self.fields.fields {
-                if text_field.field_meta.input_type == "text" {
+                if text_field.field_meta.input_type == "text" || text_field.field_meta.input_type == "string" {
                     if let Some(sql_field) = &text_field.field_meta.sql_field {
                         param_group.insert(format!("{} LIKE ?", sql_field), search_pattern.clone());
                     }
@@ -297,9 +344,6 @@ impl SearchParams {
                     value = None;
                 }
             }
-            // if let Some(value) = &value {
-            //     println!("value: {}", value);
-            // }
 
             let field_input = SearchParamFieldInput {
                 name: field.name.clone(),
@@ -321,9 +365,6 @@ impl SearchParams {
                 let value = parts.next().unwrap_or("").to_string();
                 let decoded_value = urlencoding::decode(&value).unwrap_or_default();
                 let decoded_value = decoded_value.to_string().replace("+", " ");
-                // if decoded_value.len() > 0 {
-                //     println!("decode_to_string: {}", decoded_value);
-                // }
                 Some((key, decoded_value.to_string()))
             })
             .collect();
@@ -362,7 +403,7 @@ impl SearchParams {
     }
     
     pub fn get_column_titles(columns: &[String]) -> Vec<String> {
-        let all_meta = Image::get_meta();
+        let all_meta = Image::get_all_meta();
         columns.iter().filter_map(|c| {
             match c.as_str() {
                 "thumbnail" => Some("Thumbnail".to_string()),
